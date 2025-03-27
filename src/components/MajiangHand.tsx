@@ -1,19 +1,21 @@
-import { useState } from 'react'
 import { useAnswerValidation } from '../hooks/useAnswerValidation'
+import { useFeedback } from '../hooks/useFeedback'
 import { useHandTiles } from '../hooks/useHandTiles'
+import { useStatistics } from '../hooks/useStatistics'
 import { useTileSelection } from '../hooks/useTileSelection'
 import { useTimer } from '../hooks/useTimer'
 import { generateSingleSequenceTiles } from '../utils/majiang'
 import { FeedbackSection } from './FeedbackSection'
 import { MajiangTile } from './MajiangTile'
 import { SortButton } from './SortButton'
+import { StatisticsSection } from './StatisticsSection'
 
 export function MajiangHand() {
   const {
     handInfo,
     tingTiles,
     isSortedHandTile,
-    generateNewHand: _generateNewHand,
+    generateNewHand,
     toggleHandTilesOrder,
   } = useHandTiles()
 
@@ -26,25 +28,40 @@ export function MajiangHand() {
     resetSelection,
   } = useTileSelection()
 
-  const { start, end, getTimeSpent } = useTimer()
+  const { startTime, start, end, getTimeSpent } = useTimer()
 
   const { isCorrect, errorTitles, missingTiles } = useAnswerValidation(tingTiles, selectedTiles)
 
-  const [showAnswer, setShowAnswer] = useState(false)
-  const [showHint, setShowHint] = useState(false)
+  const {
+    showAnswer,
+    showHint,
+    setShowAnswer,
+    setShowHint,
+    resetFeedback,
+  } = useFeedback()
+
+  const {
+    attemptTimes,
+    completedHands,
+    currentAttemptTime,
+    recordAttempt,
+  } = useStatistics()
 
   const handleGenerateNewHand = () => {
-    _generateNewHand()
+    generateNewHand()
     start()
     resetSelection()
-    setShowAnswer(false)
-    setShowHint(false)
+    resetFeedback()
   }
 
   const handleConfirmSelection = () => {
     const endTime = handleConfirm()
     if (endTime) {
       end()
+      const timeSpent = Math.floor((Date.now() - startTime) / 1000)
+      if (timeSpent !== undefined) {
+        recordAttempt(timeSpent, isCorrect)
+      }
     }
   }
 
@@ -52,6 +69,11 @@ export function MajiangHand() {
 
   return (
     <div className="p-6 bg-white rounded-xl shadow-lg">
+      <StatisticsSection
+        attemptTimes={attemptTimes}
+        completedHands={completedHands}
+        currentAttemptTime={currentAttemptTime}
+      />
       <button
         className="w-full mb-8 px-6 py-4 bg-blue-500 text-white text-lg font-semibold rounded-lg hover:bg-blue-600 transition-colors shadow-md hover:shadow-lg active:transform active:scale-95"
         onClick={handleGenerateNewHand}
@@ -116,7 +138,7 @@ export function MajiangHand() {
         errorTitles={errorTitles}
         missingTiles={missingTiles}
         tingTiles={tingTiles}
-        timeSpent={getTimeSpent() || undefined}
+        timeSpent={getTimeSpent()}
         onShowHint={() => setShowHint(true)}
         onShowAnswer={() => setShowAnswer(true)}
         showHint={showHint}
