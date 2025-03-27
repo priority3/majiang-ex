@@ -1,8 +1,10 @@
+import { useState } from 'react'
 import { useAnswerValidation } from '../hooks/useAnswerValidation'
 import { useHandTiles } from '../hooks/useHandTiles'
 import { useTileSelection } from '../hooks/useTileSelection'
 import { useTimer } from '../hooks/useTimer'
 import { generateSingleSequenceTiles } from '../utils/majiang'
+import { FeedbackSection } from './FeedbackSection'
 import { MajiangTile } from './MajiangTile'
 import { SortButton } from './SortButton'
 
@@ -26,12 +28,17 @@ export function MajiangHand() {
 
   const { start, end, getTimeSpent } = useTimer()
 
-  const { isCorrect } = useAnswerValidation(tingTiles, selectedTiles)
+  const { isCorrect, errorTitles, missingTiles } = useAnswerValidation(tingTiles, selectedTiles)
+
+  const [showAnswer, setShowAnswer] = useState(false)
+  const [showHint, setShowHint] = useState(false)
 
   const handleGenerateNewHand = () => {
     _generateNewHand()
     start()
     resetSelection()
+    setShowAnswer(false)
+    setShowHint(false)
   }
 
   const handleConfirmSelection = () => {
@@ -103,19 +110,18 @@ export function MajiangHand() {
         )}
       </div>
 
-      <div className={`mt-6 p-4 rounded-lg text-center text-lg font-semibold ${
-        isCorrect ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
-      } ${showFeedback ? 'visible' : 'invisible'}`}
-      >
-        {isCorrect ? '回答正确！' : '回答错误，请重试'}
-        {getTimeSpent() && (
-          <div className="mt-2 text-sm">
-            用时：
-            {getTimeSpent()}
-            秒
-          </div>
-        )}
-      </div>
+      <FeedbackSection
+        isCorrect={isCorrect}
+        showFeedback={showFeedback}
+        errorTitles={errorTitles}
+        missingTiles={missingTiles}
+        tingTiles={tingTiles}
+        timeSpent={getTimeSpent() || undefined}
+        onShowHint={() => setShowHint(true)}
+        onShowAnswer={() => setShowAnswer(true)}
+        showHint={showHint}
+        showAnswer={showAnswer}
+      />
     </div>
   )
 }
