@@ -15,8 +15,8 @@ export function useTimer() {
 
   const getTimeSpent = () => {
     if (!startTime || !endTime)
-      return null
-    return ((endTime - startTime) / 1000).toFixed(1)
+      return undefined
+    return Math.floor((endTime - startTime) / 1000)
   }
 
   return {
