@@ -1,12 +1,12 @@
 import { useState } from 'react'
 
 export function useTimer() {
-  const [startTime, setStartTime] = useState<number | null>(null)
-  const [endTime, setEndTime] = useState<number | null>(null)
+  const [startTime, setStartTime] = useState<number>(0)
+  const [endTime, setEndTime] = useState<number>(0)
 
   const start = () => {
     setStartTime(Date.now())
-    setEndTime(null)
+    setEndTime(0)
   }
 
   const end = () => {
@@ -16,10 +16,13 @@ export function useTimer() {
   const getTimeSpent = () => {
     if (!startTime || !endTime)
       return undefined
-    return Math.floor((endTime - startTime) / 1000)
+    const timeSpent = Math.floor((endTime - startTime) / 1000)
+    return timeSpent
   }
 
   return {
+    startTime,
+    endTime,
     start,
     end,
     getTimeSpent,
