@@ -124,6 +124,22 @@ export function useGameState() {
     return Math.round((gameState.totalWins / gameState.totalGames) * 100)
   }, [gameState.totalGames, gameState.totalWins])
 
+  const resetStats = useCallback(() => {
+    const freshState: GameState = {
+      score: 0,
+      combo: 0,
+      maxCombo: 0,
+      level: 1,
+      exp: 0,
+      totalGames: 0,
+      totalWins: 0,
+      currentMode: 'ting',
+      modeStats: initialModeStats,
+    }
+    setGameState(freshState)
+    localStorage.removeItem('majiang-stats')
+  }, [])
+
   return {
     ...gameState,
     addScore,
@@ -131,5 +147,6 @@ export function useGameState() {
     resetCombo,
     getModeAccuracy,
     getOverallAccuracy,
+    resetStats,
   }
 }

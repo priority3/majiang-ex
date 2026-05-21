@@ -8,6 +8,7 @@ interface SettingsPanelProps {
   onToggleSound: () => void
   difficulty: 'easy' | 'normal' | 'hard'
   onSetDifficulty: (d: 'easy' | 'normal' | 'hard') => void
+  onResetStats?: () => void
 }
 
 export function SettingsPanel({
@@ -17,6 +18,7 @@ export function SettingsPanel({
   onToggleSound,
   difficulty,
   onSetDifficulty,
+  onResetStats,
 }: SettingsPanelProps) {
   const [activeTab, setActiveTab] = useState<'general' | 'game'>('general')
 
@@ -124,6 +126,20 @@ export function SettingsPanel({
                           ))}
                         </div>
                       </div>
+
+                      {/* 重置统计 */}
+                      {onResetStats && (
+                        <div className="p-4 bg-white/5 rounded-xl">
+                          <div className="text-white font-medium mb-2">数据管理</div>
+                          <div className="text-sm text-gray-400 mb-3">重置所有练习统计和积分数据</div>
+                          <button
+                            className="px-4 py-2 bg-red-500/20 text-red-400 rounded-lg hover:bg-red-500/30 transition-colors border border-red-500/30"
+                            onClick={onResetStats}
+                          >
+                            重置统计数据
+                          </button>
+                        </div>
+                      )}
                     </div>
                   )
                 : (

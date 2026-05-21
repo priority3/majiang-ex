@@ -29,6 +29,7 @@ export function MajiangHand() {
     setMode,
     getModeAccuracy,
     getOverallAccuracy,
+    resetStats,
   } = useGameState()
 
   const { playSound } = useSound()
@@ -205,6 +206,7 @@ export function MajiangHand() {
         onToggleSound={handleToggleSound}
         difficulty={difficulty}
         onSetDifficulty={setDifficulty}
+        onResetStats={resetStats}
       />
 
       {/* 统计面板 */}
