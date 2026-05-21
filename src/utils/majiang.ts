@@ -1,6 +1,18 @@
 import type { Tile, TileType } from '../types'
 import { VALID_TYPES } from '../types'
 
+export function compareTilesByMahjongOrder(a: Tile, b: Tile): number {
+  const typeOrder = { 万: 0, 筒: 1, 条: 2 }
+  const typeCompare = typeOrder[a.type] - typeOrder[b.type]
+  if (typeCompare !== 0)
+    return typeCompare
+  return a.value - b.value
+}
+
+export function sortTilesByMahjongOrder(tiles: Tile[]): Tile[] {
+  return [...tiles].sort(compareTilesByMahjongOrder)
+}
+
 // 生成一副完整的麻将牌（缺一门）
 export function generateFullTiles(excludeType: TileType): Tile[] {
   const tiles: Tile[] = []
