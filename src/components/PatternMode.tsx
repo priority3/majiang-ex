@@ -2,6 +2,7 @@ import type { Tile } from '../types'
 import { motion } from 'framer-motion'
 import { useState } from 'react'
 import { generatePatternHand } from '../utils/majiang'
+import { trackAnswer } from '../utils/tracker'
 import { AnimatedMajiangTile } from './AnimatedMajiangTile'
 
 interface PatternModeProps {
@@ -49,6 +50,7 @@ export function PatternMode({ onComplete }: PatternModeProps) {
       setStreak(0)
       setScore(prev => Math.max(0, prev - 50))
     }
+    trackAnswer('pattern', isCorrect, 'pattern_recognition')
 
     setTimeout(() => {
       if (round < maxRounds) {

@@ -2,6 +2,7 @@ import type { Tile } from '../types'
 import { motion } from 'framer-motion'
 import { useEffect, useState } from 'react'
 import { countTingTiles, generateRandomHand } from '../utils/majiang'
+import { trackAnswer } from '../utils/tracker'
 import { AnimatedMajiangTile } from './AnimatedMajiangTile'
 import { TimerDisplay } from './TimerDisplay'
 
@@ -72,6 +73,7 @@ export function SpeedMode({ onComplete }: SpeedModeProps) {
       setStreak(0)
       setScore(prev => Math.max(0, prev - 20))
     }
+    trackAnswer('speed', isCorrect, 'ting_count')
 
     setTimeout(() => {
       setShowFeedback(false)

@@ -7,6 +7,7 @@ import { useSound } from '../hooks/useSound'
 import { useStatistics } from '../hooks/useStatistics'
 import { useTileSelection } from '../hooks/useTileSelection'
 import { useTimer } from '../hooks/useTimer'
+import { trackAnswer } from '../utils/tracker'
 import { generateSingleSequenceTiles } from '../utils/majiang'
 import { AnimatedMajiangTile } from './AnimatedMajiangTile'
 import { FeedbackSection } from './FeedbackSection'
@@ -144,6 +145,7 @@ export function TingMode({ onComplete, soundEnabled, difficulty }: TingModeProps
       }
 
       onComplete(isAnswerCorrect ? 100 : 0, timeSpent || 0)
+      trackAnswer('ting', isAnswerCorrect, 'ting_judge')
 
       setTimeout(() => {
         handleNextRound()

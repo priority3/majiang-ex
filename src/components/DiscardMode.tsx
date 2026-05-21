@@ -3,6 +3,7 @@ import { motion } from 'framer-motion'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { VALID_TYPES } from '../types'
 import { sortTilesByMahjongOrder } from '../utils/majiang'
+import { trackAnswer } from '../utils/tracker'
 import { AnimatedMajiangTile } from './AnimatedMajiangTile'
 import { MajiangTile } from './MajiangTile'
 import { SortButton } from './SortButton'
@@ -149,6 +150,7 @@ export function DiscardMode({ onComplete }: DiscardModeProps) {
       setStreak(0)
       setScore(prev => Math.max(0, prev - 30))
     }
+    trackAnswer('discard', isCorrect, 'best_discard')
   }
 
   const handleNextHand = () => {
