@@ -409,6 +409,72 @@ body {
   animation: pulse 1.5s ease-in-out infinite;
 }
 
+/* 连击火焰效果 */
+.combo-fire {
+  position: relative;
+  overflow: hidden;
+}
+
+.combo-fire::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: conic-gradient(
+    from 0deg,
+    transparent 0deg,
+    rgba(255, 107, 53, 0.15) 30deg,
+    transparent 60deg,
+    rgba(255, 193, 7, 0.1) 90deg,
+    transparent 120deg,
+    rgba(255, 107, 53, 0.12) 150deg,
+    transparent 180deg,
+    rgba(255, 193, 7, 0.08) 210deg,
+    transparent 240deg,
+    rgba(255, 107, 53, 0.1) 270deg,
+    transparent 300deg,
+    rgba(255, 193, 7, 0.12) 330deg,
+    transparent 360deg
+  );
+  animation: combo-spin 3s linear infinite;
+  pointer-events: none;
+  z-index: 0;
+}
+
+@keyframes combo-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.combo-fire > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* 高连击边框发光 */
+.combo-glow {
+  box-shadow:
+    0 0 15px rgba(255, 107, 53, 0.4),
+    0 0 30px rgba(255, 193, 7, 0.2),
+    inset 0 0 15px rgba(255, 107, 53, 0.1);
+  animation: combo-glow-pulse 1s ease-in-out infinite alternate;
+}
+
+@keyframes combo-glow-pulse {
+  from {
+    box-shadow:
+      0 0 15px rgba(255, 107, 53, 0.4),
+      0 0 30px rgba(255, 193, 7, 0.2);
+  }
+  to {
+    box-shadow:
+      0 0 25px rgba(255, 107, 53, 0.6),
+      0 0 50px rgba(255, 193, 7, 0.3);
+  }
+}
+
 /* 滚动条样式 */
 ::-webkit-scrollbar {
   width: 8px;
