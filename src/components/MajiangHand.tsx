@@ -165,6 +165,7 @@ export function MajiangHand() {
       <GameModeSelector
         currentMode={currentMode}
         onSelectMode={handleModeSelect}
+        getModeAccuracy={getModeAccuracy}
       />
 
       {/* 游戏区域 */}
