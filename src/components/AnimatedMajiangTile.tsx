@@ -6,6 +6,9 @@ interface AnimatedMajiangTileProps {
   tile: Tile
   index: number
   selected?: boolean
+  correct?: boolean
+  error?: boolean
+  small?: boolean
   onClick?: () => void
   keyPrefix: string
 }
@@ -14,6 +17,9 @@ export function AnimatedMajiangTile({
   tile,
   index,
   selected,
+  correct,
+  error,
+  small,
   onClick,
   keyPrefix,
 }: AnimatedMajiangTileProps) {
@@ -34,6 +40,9 @@ export function AnimatedMajiangTile({
       <MajiangTile
         tile={tile}
         selected={selected}
+        correct={correct}
+        error={error}
+        small={small}
         onClick={onClick}
       />
     </motion.div>

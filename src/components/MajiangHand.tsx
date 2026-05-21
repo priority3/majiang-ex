@@ -1,193 +1,172 @@
+import type { GameMode } from './GameModeSelector'
 import { AnimatePresence, motion } from 'framer-motion'
-import { useEffect } from 'react'
-import { useAnswerValidation } from '../hooks/useAnswerValidation'
-import { useFeedback } from '../hooks/useFeedback'
-import { useHandTiles } from '../hooks/useHandTiles'
-import { useStatistics } from '../hooks/useStatistics'
-import { useTileSelection } from '../hooks/useTileSelection'
-import { useTimer } from '../hooks/useTimer'
-import { generateSingleSequenceTiles } from '../utils/majiang'
-import { AnimatedMajiangTile } from './AnimatedMajiangTile'
-import { FeedbackSection } from './FeedbackSection'
-import { SortButton } from './SortButton'
-import { StatisticsSection } from './StatisticsSection'
+import { useState } from 'react'
+import { useGameState } from '../hooks/useGameState'
+import { useSound } from '../hooks/useSound'
+import { AchievementSystem } from './AchievementSystem'
+import { CelebrationEffect } from './CelebrationEffect'
+import { DiscardMode } from './DiscardMode'
+import { GameModeSelector } from './GameModeSelector'
+import { PatternMode } from './PatternMode'
+import { ScoreBoard } from './ScoreBoard'
+import { SettingsPanel } from './SettingsPanel'
+import { SpeedMode } from './SpeedMode'
+import { TingMode } from './TingMode'
 
 export function MajiangHand() {
   const {
-    handInfo,
-    tingTiles,
-    isSortedHandTile,
-    generateNewHand,
-    toggleHandTilesOrder,
-  } = useHandTiles()
+    score,
+    combo,
+    level,
+    exp,
+    totalGames,
+    totalWins,
+    currentMode,
+    addScore,
+    setMode,
+  } = useGameState()
 
-  const {
-    selectedTiles,
-    showFeedback,
-    isSelected,
-    handleTileSelect,
-    handleConfirm,
-    resetSelection,
-  } = useTileSelection()
+  const { playSound } = useSound()
+  const [settingsOpen, setSettingsOpen] = useState(false)
+  const [soundEnabled, setSoundEnabled] = useState(true)
+  const [difficulty, setDifficulty] = useState<'easy' | 'normal' | 'hard'>('normal')
+  const [celebrationType, setCelebrationType] = useState<'win' | 'combo' | 'levelup'>('win')
+  const [showCelebration, setShowCelebration] = useState(false)
 
-  const { startTime, start, end, getTimeSpent } = useTimer()
-
-  const { isCorrect, errorTitles, missingTiles } = useAnswerValidation(tingTiles, selectedTiles)
-
-  const {
-    showAnswer,
-    showHint,
-    setShowAnswer,
-    setShowHint,
-    resetFeedback,
-  } = useFeedback()
-
-  const {
-    attemptTimes,
-    completedHands,
-    currentAttemptTime,
-    recordAttempt,
-  } = useStatistics()
-
-  const handleGenerateNewHand = () => {
-    generateNewHand()
-    start()
-    resetSelection()
-    resetFeedback()
+  const handleModeSelect = (mode: GameMode) => {
+    setMode(mode)
+    playSound('newgame')
   }
-  useEffect(() => {
-    handleGenerateNewHand()
-  }, [])
 
-  const handleConfirmSelection = () => {
-    const endTime = handleConfirm()
-    if (endTime) {
-      end()
-      const timeSpent = Math.floor((Date.now() - startTime) / 1000)
-      if (timeSpent !== undefined) {
-        recordAttempt(timeSpent, isCorrect)
+  const handleGameComplete = (gameScore: number, _time: number) => {
+    const isWin = gameScore > 0
+    const prevLevel = level
+
+    addScore(gameScore, isWin)
+
+    if (soundEnabled) {
+      playSound(isWin ? 'correct' : 'wrong')
+    }
+
+    // 触发庆祝效果
+    if (isWin) {
+      if (combo >= 2) {
+        setCelebrationType('combo')
+        if (soundEnabled)
+          playSound('combo')
       }
+      else {
+        setCelebrationType('win')
+      }
+      setShowCelebration(true)
+    }
+
+    // 升级庆祝
+    if (level > prevLevel) {
+      setTimeout(() => {
+        setCelebrationType('levelup')
+        setShowCelebration(true)
+        if (soundEnabled)
+          playSound('levelup')
+      }, 1000)
     }
   }
 
-  const fullTiles = generateSingleSequenceTiles(handInfo.excludeType)
+  const handleToggleSound = () => {
+    setSoundEnabled(prev => !prev)
+  }
 
   return (
-    <div className="p-6 bg-white rounded-xl shadow-lg">
-      <StatisticsSection
-        attemptTimes={attemptTimes}
-        completedHands={completedHands}
-        currentAttemptTime={currentAttemptTime}
+    <div className="relative z-10">
+      {/* 庆祝效果 */}
+      <CelebrationEffect
+        show={showCelebration}
+        type={celebrationType}
+        onComplete={() => setShowCelebration(false)}
       />
-      <motion.button
-        className="w-full mb-8 px-6 py-4 bg-blue-500 text-white text-lg font-semibold rounded-lg hover:bg-blue-600 transition-colors shadow-md hover:shadow-lg active:transform active:scale-95 cursor-pointer"
-        onClick={handleGenerateNewHand}
-        whileHover={{ scale: 1.02 }}
-        whileTap={{ scale: 0.98 }}
-      >
-        生成新的听牌序列
-      </motion.button>
 
-      <div className="mb-8">
-        <div className="flex justify-between items-center text-gray-800 border-b pb-2">
-          <h2 className="text-2xl font-bold">手牌</h2>
-          {handInfo.hand.length
-            ? (
-                <SortButton
-                  isSorted={isSortedHandTile}
-                  onClick={toggleHandTilesOrder}
-                />
-              )
-            : null}
-        </div>
-        <motion.div
-          className="mt-3 grid grid-cols-9 gap-4 p-6 bg-gray-50 rounded-xl shadow-inner"
-          layout
-          transition={{
-            layout: {
-              duration: 0.3,
-              delay: 0.3,
-              ease: 'easeOut',
-            },
-          }}
+      {/* 成就系统 */}
+      <AchievementSystem
+        score={score}
+        combo={combo}
+        level={level}
+        totalGames={totalGames}
+        totalWins={totalWins}
+      />
+
+      {/* 顶部导航栏 */}
+      <div className="flex items-center justify-between mb-8">
+        <motion.h1
+          className="text-4xl font-bold neon-text"
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
         >
-          <AnimatePresence mode="popLayout">
-            {handInfo.hand.map((tile, index) => (
-              <AnimatedMajiangTile
-                key={`hand-${tile.type}${tile.value}-${index}`}
-                tile={tile}
-                index={index}
-                keyPrefix="hand-"
-              />
-            ))}
-          </AnimatePresence>
-        </motion.div>
+          麻将练习场
+        </motion.h1>
+        <motion.button
+          className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-colors"
+          onClick={() => setSettingsOpen(true)}
+          whileHover={{ scale: 1.1, rotate: 45 }}
+          whileTap={{ scale: 0.9 }}
+        >
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+          </svg>
+        </motion.button>
       </div>
 
-      <div>
-        <div className="flex text-gray-800 border-b pb-2">
-          <h2 className="text-2xl font-bold mb-4">选择可以胡的牌</h2>
-        </div>
+      {/* 计分板 */}
+      <ScoreBoard
+        score={score}
+        combo={combo}
+        level={level}
+        exp={exp}
+        showCombo={combo >= 3}
+      />
+
+      {/* 游戏模式选择 */}
+      <GameModeSelector
+        currentMode={currentMode}
+        onSelectMode={handleModeSelect}
+      />
+
+      {/* 游戏区域 */}
+      <AnimatePresence mode="wait">
         <motion.div
-          className="mt-3 grid grid-cols-9 gap-4 p-6 bg-gray-50 rounded-xl shadow-inner"
-          layout
+          key={currentMode}
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: -20 }}
+          transition={{ duration: 0.3 }}
         >
-          <AnimatePresence mode="popLayout">
-            {handInfo.hand.length > 0
-              ? fullTiles.map((tile, index) => (
-                  <AnimatedMajiangTile
-                    key={`ting-${tile.type}${tile.value}-${index}`}
-                    tile={tile}
-                    index={index}
-                    selected={isSelected(tile)}
-                    onClick={() => handleTileSelect(tile)}
-                    keyPrefix="ting-"
-                  />
-                ))
-              : null}
-          </AnimatePresence>
+          {currentMode === 'ting' && (
+            <TingMode
+              onComplete={handleGameComplete}
+              soundEnabled={soundEnabled}
+              difficulty={difficulty}
+            />
+          )}
+          {currentMode === 'discard' && (
+            <DiscardMode onComplete={handleGameComplete} />
+          )}
+          {currentMode === 'speed' && (
+            <SpeedMode onComplete={handleGameComplete} />
+          )}
+          {currentMode === 'pattern' && (
+            <PatternMode onComplete={handleGameComplete} />
+          )}
         </motion.div>
+      </AnimatePresence>
 
-        {selectedTiles.length > 0 && (
-          <motion.div
-            className="mt-4 flex justify-center gap-3"
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.2 }}
-          >
-            <motion.button
-              className="cursor-pointer px-8 py-3 bg-green-500 text-white text-lg font-semibold rounded-lg hover:bg-green-600 transition-colors shadow-md hover:shadow-lg active:transform active:scale-95"
-              onClick={handleConfirmSelection}
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-            >
-              确认选择
-            </motion.button>
-            {isCorrect && showFeedback && (
-              <motion.button
-                className="cursor-pointer px-6 py-3 bg-blue-500 text-white text-lg font-semibold rounded-lg hover:bg-blue-600 transition-colors shadow-md hover:shadow-lg active:transform active:scale-95"
-                onClick={handleGenerateNewHand}
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-              >
-                重新生成
-              </motion.button>
-            )}
-          </motion.div>
-        )}
-      </div>
-
-      <FeedbackSection
-        isCorrect={isCorrect}
-        showFeedback={showFeedback}
-        errorTitles={errorTitles}
-        missingTiles={missingTiles}
-        tingTiles={tingTiles}
-        timeSpent={getTimeSpent()}
-        onShowHint={() => setShowHint(true)}
-        onShowAnswer={() => setShowAnswer(true)}
-        showHint={showHint}
-        showAnswer={showAnswer}
+      {/* 设置面板 */}
+      <SettingsPanel
+        isOpen={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+        soundEnabled={soundEnabled}
+        onToggleSound={handleToggleSound}
+        difficulty={difficulty}
+        onSetDifficulty={setDifficulty}
       />
     </div>
   )

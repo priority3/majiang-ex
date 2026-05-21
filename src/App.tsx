@@ -1,11 +1,14 @@
 import { MajiangHand } from './components/MajiangHand'
-import './App.css'
+import { ParticleBackground } from './components/ParticleBackground'
 
 function App() {
   return (
-    <div className="min-h-screen bg-gray-100 w-full">
-      <div className="container mx-auto py-8">
-        <h1 className="text-3xl font-bold text-center mb-8">胡一把川麻</h1>
+    <div className="min-h-screen w-full relative">
+      {/* 粒子背景 */}
+      <ParticleBackground count={40} />
+
+      {/* 主内容区 */}
+      <div className="container mx-auto py-8 px-4 relative z-10">
         <MajiangHand />
       </div>
     </div>

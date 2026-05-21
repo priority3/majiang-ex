@@ -6,7 +6,6 @@ export function generateFullTiles(excludeType: TileType): Tile[] {
   const tiles: Tile[] = []
   const types: TileType[] = VALID_TYPES.filter(t => t !== excludeType)
 
-  // 生成数牌（万、条、筒）
   for (const type of types) {
     for (let value = 1; value <= 9; value++) {
       for (let i = 0; i < 4; i++) {
@@ -20,21 +19,17 @@ export function generateFullTiles(excludeType: TileType): Tile[] {
 
 // 检查是否听牌
 function isTing(tiles: Tile[], excludeType: TileType): boolean {
-  // 检查是否缺一门
   const types = new Set(tiles.map(t => t.type))
   if (types.size !== 2 || types.has(excludeType))
     return false
 
-  // 复制一份牌，用于检查
   const sortedTiles = [...tiles].sort((a, b) => {
     if (a.type !== b.type)
       return a.type.localeCompare(b.type)
     return a.value - b.value
   })
 
-  // 检查所有可能的牌（随机顺序）
   const remainingTiles = generateFullTiles(excludeType)
-  // 随机打乱牌的顺序
   const shuffledTiles = [...remainingTiles].sort(() => Math.random() - 0.5)
 
   for (const tile of shuffledTiles) {
@@ -51,11 +46,9 @@ function canHu(tiles: Tile[]): boolean {
   if (tiles.length !== 14)
     return false
 
-  // 检查七对子
   if (isQiDui(tiles))
     return true
 
-  // 检查普通胡牌
   return isNormalHu(tiles)
 }
 
@@ -78,14 +71,12 @@ function isNormalHu(tiles: Tile[]): boolean {
   if (tiles.length !== 14)
     return false
 
-  // 尝试所有可能的组合
   const sortedTiles = [...tiles].sort((a, b) => {
     if (a.type !== b.type)
       return a.type.localeCompare(b.type)
     return a.value - b.value
   })
 
-  // 检查所有可能的对子
   for (let i = 0; i < sortedTiles.length - 1; i++) {
     if (isSameTile(sortedTiles[i], sortedTiles[i + 1])) {
       const remainingTiles = [...sortedTiles]
@@ -109,14 +100,12 @@ function canFormTripletsAndSequences(tiles: Tile[]): boolean {
   if (tiles.length === 0)
     return true
 
-  // 检查刻子
   if (tiles.length >= 3 && isSameTile(tiles[0], tiles[1]) && isSameTile(tiles[1], tiles[2])) {
     const remaining = tiles.slice(3)
     if (canFormTripletsAndSequences(remaining))
       return true
   }
 
-  // 检查顺子
   if (tiles.length >= 3) {
     const first = tiles[0]
     const second = { type: first.type, value: first.value + 1 }
@@ -138,10 +127,11 @@ function canFormTripletsAndSequences(tiles: Tile[]): boolean {
   return false
 }
 
-// 生成听牌序列
+// 生成听牌序列（保证听牌）
 export function generateTingTiles(): {
   hand: Tile[]
   excludeType: TileType
+  isTing: boolean
 } {
   const maxAttempts = 1000
   let attempts = 0
@@ -149,7 +139,6 @@ export function generateTingTiles(): {
   let excludeType: TileType = VALID_TYPES[0]
   while (attempts < maxAttempts) {
     hand = []
-    // 随机选择缺哪一门
     excludeType = VALID_TYPES[Math.floor(Math.random() * VALID_TYPES.length)]
 
     const tiles = generateFullTiles(excludeType)
@@ -163,6 +152,7 @@ export function generateTingTiles(): {
       return {
         hand,
         excludeType,
+        isTing: true,
       }
     }
 
@@ -172,7 +162,49 @@ export function generateTingTiles(): {
   return {
     hand,
     excludeType,
+    isTing: false,
   }
+}
+
+// 生成可能听牌也可能不听牌的序列（听牌概率约60%）
+export function generateRandomHand(): {
+  hand: Tile[]
+  excludeType: TileType
+  isTing: boolean
+} {
+  // 60%概率生成听牌序列，40%概率生成不听牌序列
+  if (Math.random() < 0.6) {
+    return generateTingTiles()
+  }
+
+  // 生成不听牌的序列
+  const maxAttempts = 100
+  let attempts = 0
+
+  while (attempts < maxAttempts) {
+    const excludeType = VALID_TYPES[Math.floor(Math.random() * VALID_TYPES.length)]
+    const tiles = generateFullTiles(excludeType)
+    const hand: Tile[] = []
+
+    for (let i = 0; i < 13; i++) {
+      const index = Math.floor(Math.random() * tiles.length)
+      hand.push(tiles.splice(index, 1)[0])
+    }
+
+    // 检查是否不听牌
+    if (!isTing(hand, excludeType)) {
+      return {
+        hand,
+        excludeType,
+        isTing: false,
+      }
+    }
+
+    attempts++
+  }
+
+  // 如果都失败，返回一个听牌的序列
+  return generateTingTiles()
 }
 
 // 获取听牌信息
@@ -180,15 +212,11 @@ export function getTingInfo(tiles: Tile[]): Tile[] {
   const tingTiles: Tile[] = []
   const types = new Set(tiles.map(t => t.type))
 
-  // 确保只有两种花色
   if (types.size !== 2)
     return tingTiles
 
-  // 找出缺的那一门
   const excludeType = VALID_TYPES.find(t => !types.has(t))!
   const remainingTiles = generateFullTiles(excludeType)
-
-  // 随机打乱牌的顺序
   const shuffledTiles = [...remainingTiles].sort(() => Math.random() - 0.5)
 
   for (const tile of shuffledTiles) {
