@@ -426,3 +426,56 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.3);
 }
+
+/* 移动端优化 */
+@media (max-width: 768px) {
+  :root {
+    --tile-width: 44px;
+    --tile-height: 62px;
+  }
+
+  .neon-text {
+    font-size: 1.8rem;
+  }
+
+  .glass-card {
+    padding: 1rem;
+    border-radius: 12px;
+  }
+
+  .mode-card {
+    padding: 1rem;
+  }
+
+  .score-display {
+    font-size: 2rem;
+  }
+}
+
+/* 触摸优化 */
+@media (hover: none) and (pointer: coarse) {
+  .mahjong-tile {
+    cursor: default;
+  }
+
+  .mahjong-tile:active .mahjong-tile-inner {
+    transform: translateY(-8px) scale(0.98);
+  }
+
+  .neon-button:active {
+    transform: scale(0.98);
+  }
+}
+
+/* 小屏幕优化 */
+@media (max-width: 480px) {
+  :root {
+    --tile-width: 38px;
+    --tile-height: 54px;
+  }
+
+  .container {
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+  }
+}
