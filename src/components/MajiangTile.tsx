@@ -10,105 +10,126 @@ interface MajiangTileProps {
   small?: boolean
 }
 
-// 牌面字符映射 - 使用更传统的麻将符号
-const TILE_CHARS: Record<string, { value: string, type: string }> = {
-  '1万': { value: '一', type: '万' },
-  '2万': { value: '二', type: '万' },
-  '3万': { value: '三', type: '万' },
-  '4万': { value: '四', type: '万' },
-  '5万': { value: '五', type: '万' },
-  '6万': { value: '六', type: '万' },
-  '7万': { value: '七', type: '万' },
-  '8万': { value: '八', type: '万' },
-  '9万': { value: '九', type: '万' },
-  '1条': { value: '①', type: '条' },
-  '2条': { value: '②', type: '条' },
-  '3条': { value: '③', type: '条' },
-  '4条': { value: '④', type: '条' },
-  '5条': { value: '⑤', type: '条' },
-  '6条': { value: '⑥', type: '条' },
-  '7条': { value: '⑦', type: '条' },
-  '8条': { value: '⑧', type: '条' },
-  '9条': { value: '⑨', type: '条' },
-  '1筒': { value: '⊙', type: '筒' },
-  '2筒': { value: '⊙', type: '筒' },
-  '3筒': { value: '⊙', type: '筒' },
-  '4筒': { value: '⊙', type: '筒' },
-  '5筒': { value: '⊙', type: '筒' },
-  '6筒': { value: '⊙', type: '筒' },
-  '7筒': { value: '⊙', type: '筒' },
-  '8筒': { value: '⊙', type: '筒' },
-  '9筒': { value: '⊙', type: '筒' },
+// 万子的传统中文数字
+const WAN_CHARS: Record<number, string> = {
+  1: '一', 2: '二', 3: '三', 4: '四', 5: '五',
+  6: '六', 7: '七', 8: '八', 9: '九',
 }
 
-// 筒子图案渲染
-function TongPattern({ count }: { count: number }) {
-  const positions = getTongPositions(count)
+// 筒子的圆点排列位置 (传统布局)
+const TONG_POSITIONS: Record<number, { x: number; y: number }[]> = {
+  1: [{ x: 50, y: 50 }],
+  2: [{ x: 50, y: 28 }, { x: 50, y: 72 }],
+  3: [{ x: 50, y: 22 }, { x: 35, y: 62 }, { x: 65, y: 62 }],
+  4: [{ x: 35, y: 28 }, { x: 65, y: 28 }, { x: 35, y: 72 }, { x: 65, y: 72 }],
+  5: [{ x: 35, y: 22 }, { x: 65, y: 22 }, { x: 50, y: 50 }, { x: 35, y: 78 }, { x: 65, y: 78 }],
+  6: [{ x: 35, y: 22 }, { x: 65, y: 22 }, { x: 35, y: 50 }, { x: 65, y: 50 }, { x: 35, y: 78 }, { x: 65, y: 78 }],
+  7: [{ x: 50, y: 18 }, { x: 32, y: 38 }, { x: 68, y: 38 }, { x: 50, y: 55 }, { x: 32, y: 72 }, { x: 68, y: 72 }, { x: 50, y: 88 }],
+  8: [{ x: 32, y: 18 }, { x: 68, y: 18 }, { x: 32, y: 42 }, { x: 68, y: 42 }, { x: 32, y: 68 }, { x: 68, y: 68 }, { x: 50, y: 85 }, { x: 50, y: 30 }],
+  9: [{ x: 32, y: 18 }, { x: 50, y: 18 }, { x: 68, y: 18 }, { x: 32, y: 50 }, { x: 50, y: 50 }, { x: 68, y: 50 }, { x: 32, y: 82 }, { x: 50, y: 82 }, { x: 68, y: 82 }],
+}
+
+// 筒子圆点组件
+function TongDot({ count }: { count: number }) {
+  const positions = TONG_POSITIONS[count] || TONG_POSITIONS[1]
   return (
-    <div className="relative w-full h-full flex items-center justify-center">
+    <div className="relative w-full h-full">
       {positions.map((pos, i) => (
         <div
           key={i}
-          className="absolute w-3 h-3 rounded-full"
+          className="absolute"
           style={{
             left: `${pos.x}%`,
             top: `${pos.y}%`,
-            background: 'radial-gradient(circle, #4fc3f7 0%, #0288d1 60%, #01579b 100%)',
-            boxShadow: 'inset 0 1px 2px rgba(255,255,255,0.6), 0 1px 3px rgba(0,0,0,0.3)',
+            transform: 'translate(-50%, -50%)',
           }}
-        />
+        >
+          {/* 外圈 */}
+          <div
+            className="rounded-full"
+            style={{
+              width: count <= 3 ? '14px' : count <= 6 ? '11px' : '9px',
+              height: count <= 3 ? '14px' : count <= 6 ? '11px' : '9px',
+              background: 'radial-gradient(circle at 35% 35%, #81d4fa 0%, #29b6f6 40%, #0288d1 70%, #01579b 100%)',
+              boxShadow: 'inset 0 1px 2px rgba(255,255,255,0.6), inset 0 -1px 2px rgba(0,0,0,0.3), 0 1px 2px rgba(0,0,0,0.2)',
+            }}
+          />
+        </div>
       ))}
     </div>
   )
 }
 
-function getTongPositions(count: number): { x: number, y: number }[] {
-  const positions: Record<number, { x: number, y: number }[]> = {
-    1: [{ x: 50, y: 50 }],
-    2: [{ x: 50, y: 30 }, { x: 50, y: 70 }],
-    3: [{ x: 50, y: 25 }, { x: 35, y: 65 }, { x: 65, y: 65 }],
-    4: [{ x: 35, y: 30 }, { x: 65, y: 30 }, { x: 35, y: 70 }, { x: 65, y: 70 }],
-    5: [{ x: 35, y: 25 }, { x: 65, y: 25 }, { x: 50, y: 50 }, { x: 35, y: 75 }, { x: 65, y: 75 }],
-    6: [{ x: 35, y: 22 }, { x: 65, y: 22 }, { x: 35, y: 50 }, { x: 65, y: 50 }, { x: 35, y: 78 }, { x: 65, y: 78 }],
-    7: [{ x: 50, y: 20 }, { x: 30, y: 40 }, { x: 70, y: 40 }, { x: 50, y: 55 }, { x: 30, y: 75 }, { x: 70, y: 75 }, { x: 50, y: 85 }],
-    8: [{ x: 30, y: 20 }, { x: 70, y: 20 }, { x: 30, y: 45 }, { x: 70, y: 45 }, { x: 30, y: 70 }, { x: 70, y: 70 }, { x: 50, y: 88 }, { x: 50, y: 35 }],
-    9: [{ x: 30, y: 20 }, { x: 50, y: 20 }, { x: 70, y: 20 }, { x: 30, y: 50 }, { x: 50, y: 50 }, { x: 70, y: 50 }, { x: 30, y: 80 }, { x: 50, y: 80 }, { x: 70, y: 80 }],
+// 条子竹子组件
+function TiaoBar({ count }: { count: number }) {
+  // 传统条子布局
+  const getBarPositions = (n: number) => {
+    const positions: { x: number; y: number; rotate: number }[] = []
+    if (n <= 3) {
+      // 横排
+      for (let i = 0; i < n; i++) {
+        positions.push({ x: 25 + i * 25, y: 50, rotate: 0 })
+      }
+    }
+    else if (n <= 6) {
+      // 两排
+      const topCount = Math.ceil(n / 2)
+      for (let i = 0; i < topCount; i++) {
+        positions.push({ x: 25 + i * 25, y: 32, rotate: 0 })
+      }
+      for (let i = 0; i < n - topCount; i++) {
+        positions.push({ x: 25 + i * 25, y: 68, rotate: 0 })
+      }
+    }
+    else {
+      // 三排
+      const rows = [3, 3, n - 6]
+      let y = 20
+      for (const row of rows) {
+        for (let i = 0; i < row; i++) {
+          positions.push({ x: 25 + i * 25, y, rotate: 0 })
+        }
+        y += 30
+      }
+    }
+    return positions
   }
-  return positions[count] || positions[1]
-}
 
-// 条子图案渲染
-function TiaoPattern({ count }: { count: number }) {
+  const bars = getBarPositions(count)
+
   return (
-    <div className="relative w-full h-full flex items-center justify-center">
-      <div className="flex flex-wrap justify-center items-center gap-0.5 p-1">
-        {Array.from({ length: count }).map((_, i) => (
+    <div className="relative w-full h-full">
+      {bars.map((bar, i) => (
+        <div
+          key={i}
+          className="absolute"
+          style={{
+            left: `${bar.x}%`,
+            top: `${bar.y}%`,
+            transform: `translate(-50%, -50%) rotate(${bar.rotate}deg)`,
+          }}
+        >
+          {/* 竹子主体 */}
           <div
-            key={i}
-            className="relative"
             style={{
-              width: count <= 3 ? '8px' : count <= 6 ? '6px' : '5px',
-              height: count <= 3 ? '24px' : count <= 6 ? '20px' : '16px',
+              width: count <= 3 ? '6px' : count <= 6 ? '5px' : '4px',
+              height: count <= 3 ? '28px' : count <= 6 ? '22px' : '18px',
+              background: 'linear-gradient(90deg, #1b5e20 0%, #388e3c 25%, #4caf50 50%, #388e3c 75%, #1b5e20 100%)',
+              borderRadius: '2px',
+              boxShadow: 'inset 0 0 2px rgba(255,255,255,0.3), 0 1px 2px rgba(0,0,0,0.3)',
+              position: 'relative',
             }}
           >
-            {/* 竹子主体 */}
-            <div
-              className="absolute inset-0 rounded-sm"
-              style={{
-                background: 'linear-gradient(90deg, #2e7d32 0%, #4caf50 30%, #66bb6a 50%, #4caf50 70%, #2e7d32 100%)',
-                boxShadow: 'inset 0 0 2px rgba(255,255,255,0.4)',
-              }}
-            />
             {/* 竹节 */}
-            {count <= 3 && (
+            {count <= 6 && (
               <>
-                <div className="absolute top-1/3 left-0 right-0 h-0.5 bg-green-800 opacity-50" />
-                <div className="absolute top-2/3 left-0 right-0 h-0.5 bg-green-800 opacity-50" />
+                <div style={{ position: 'absolute', top: '30%', left: 0, right: 0, height: '1px', background: '#0d3311' }} />
+                <div style={{ position: 'absolute', top: '60%', left: 0, right: 0, height: '1px', background: '#0d3311' }} />
               </>
             )}
           </div>
-        ))}
-      </div>
+        </div>
+      ))}
     </div>
   )
 }
@@ -122,12 +143,9 @@ export function MajiangTile({
   disabled = false,
   small = false,
 }: MajiangTileProps) {
-  const tileKey = `${tile.value}${tile.type}`
-  const tileChars = TILE_CHARS[tileKey] || { value: String(tile.value), type: tile.type }
-
   const sizeClass = small ? 'w-10 h-14' : 'w-14 h-20'
-  const textClass = small ? 'text-xl' : 'text-2xl'
-  const typeTextClass = small ? 'text-xs' : 'text-sm'
+  const wanTextClass = small ? 'text-lg' : 'text-xl'
+  const typeTextClass = small ? 'text-[9px]' : 'text-[10px]'
 
   const stateClass = selected
     ? 'selected'
@@ -137,11 +155,24 @@ export function MajiangTile({
         ? 'error'
         : ''
 
-  const tileTypeClass = tile.type === '万'
-    ? 'tile-wan'
+  // 根据花色设置不同的颜色主题
+  const colorTheme = tile.type === '万'
+    ? {
+        border: '#c62828',
+        text: '#b71c1c',
+        shadow: 'rgba(183, 28, 28, 0.3)',
+      }
     : tile.type === '条'
-      ? 'tile-tiao'
-      : 'tile-tong'
+      ? {
+          border: '#2e7d32',
+          text: '#1b5e20',
+          shadow: 'rgba(27, 94, 32, 0.3)',
+        }
+      : {
+          border: '#1565c0',
+          text: '#0d47a1',
+          shadow: 'rgba(13, 71, 161, 0.3)',
+        }
 
   return (
     <div
@@ -149,38 +180,49 @@ export function MajiangTile({
       onClick={disabled ? undefined : onClick}
     >
       <div className="mahjong-tile-inner">
-        <div className={`tile-face ${tileTypeClass}`}>
-          {/* 装饰圆点 */}
-          <div className="tile-dot" style={{ top: '4px', left: '4px' }} />
-          <div className="tile-dot" style={{ top: '4px', right: '4px' }} />
-          <div className="tile-dot" style={{ bottom: '4px', left: '4px' }} />
-          <div className="tile-dot" style={{ bottom: '4px', right: '4px' }} />
+        <div
+          className="tile-face"
+          style={{
+            borderColor: colorTheme.border,
+          }}
+        >
+          {/* 装饰圆点 - 四角 */}
+          <div className="tile-dot" style={{ top: '3px', left: '3px' }} />
+          <div className="tile-dot" style={{ top: '3px', right: '3px' }} />
+          <div className="tile-dot" style={{ bottom: '3px', left: '3px' }} />
+          <div className="tile-dot" style={{ bottom: '3px', right: '3px' }} />
 
           {/* 牌面内容 */}
-          {tile.type === '筒'
-            ? (
-                <>
-                  <TongPattern count={tile.value} />
-                  <span className={`absolute bottom-1 ${typeTextClass} font-bold opacity-60`}>
-                    {tile.type}
-                  </span>
-                </>
-              )
-            : tile.type === '条'
+          <div className="flex flex-col items-center justify-center h-full">
+            {tile.type === '万'
               ? (
                   <>
-                    <TiaoPattern count={tile.value} />
-                    <span className={`absolute bottom-1 ${typeTextClass} font-bold opacity-60`}>
-                      {tile.type}
+                    <span
+                      className={`${wanTextClass} font-bold`}
+                      style={{ color: colorTheme.text }}
+                    >
+                      {WAN_CHARS[tile.value]}
+                    </span>
+                    <span
+                      className={`${typeTextClass} font-bold -mt-0.5`}
+                      style={{ color: colorTheme.text }}
+                    >
+                      万
                     </span>
                   </>
                 )
-              : (
-                  <>
-                    <span className={`${textClass} font-bold`}>{tileChars.value}</span>
-                    <span className={`${typeTextClass} font-bold -mt-1`}>{tileChars.type}</span>
-                  </>
-                )}
+              : tile.type === '条'
+                ? (
+                    <div className="w-full h-full p-1">
+                      <TiaoBar count={tile.value} />
+                    </div>
+                  )
+                : (
+                    <div className="w-full h-full p-1">
+                      <TongDot count={tile.value} />
+                    </div>
+                  )}
+          </div>
         </div>
       </div>
     </div>
