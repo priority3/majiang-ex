@@ -11,6 +11,7 @@ import { generateSingleSequenceTiles } from '../utils/majiang'
 import { AnimatedMajiangTile } from './AnimatedMajiangTile'
 import { FeedbackSection } from './FeedbackSection'
 import { ParticleBurst } from './ParticleBurst'
+import { ScorePopup } from './ScorePopup'
 import { SortButton } from './SortButton'
 import { StatisticsSection } from './StatisticsSection'
 import { TimerDisplay } from './TimerDisplay'
@@ -71,6 +72,8 @@ export function TingMode({ onComplete, soundEnabled, difficulty }: TingModeProps
   const [streak, setStreak] = useState(0)
   const [showNoTingOption, setShowNoTingOption] = useState(false)
   const [showBurst, setShowBurst] = useState(false)
+  const [popupScore, setPopupScore] = useState(0)
+  const [showPopup, setShowPopup] = useState(false)
 
   const handleGenerateNewHand = () => {
     generateNewHand()
@@ -122,6 +125,8 @@ export function TingMode({ onComplete, soundEnabled, difficulty }: TingModeProps
         const totalPoints = baseScore + timeBonus + streakBonus
         setScore(prev => prev + totalPoints)
         setStreak(prev => prev + 1)
+        setPopupScore(totalPoints)
+        setShowPopup(true)
       }
       else {
         // 答错扣分
@@ -235,6 +240,7 @@ export function TingMode({ onComplete, soundEnabled, difficulty }: TingModeProps
   return (
     <div className="glass-card p-6 relative">
       <ParticleBurst show={showBurst} onComplete={() => setShowBurst(false)} />
+      <ScorePopup score={popupScore} show={showPopup} onComplete={() => setShowPopup(false)} />
       {/* 积分显示 */}
       <div className="flex justify-between items-center mb-4 p-3 bg-black/20 rounded-xl">
         <div className="text-center">
