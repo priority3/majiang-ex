@@ -175,6 +175,10 @@ export function TingMode({ onComplete, soundEnabled, difficulty }: TingModeProps
   }, [isTimerRunning])
 
   const fullTiles = generateSingleSequenceTiles(handInfo.excludeType)
+  const showEasyHint = difficulty === 'easy' && handInfo.hand.length > 0
+  const easyHintText = handInfo.isTing
+    ? `提示：这手牌可以胡 ${tingTiles.length} 张牌，先留意同花色的连续牌和对子。`
+    : '提示：这手牌没有听牌，直接选择“没有听牌”即可。'
 
   // 处理"没有听牌"选项的点击
   const handleNoTingClick = () => {
@@ -304,6 +308,26 @@ export function TingMode({ onComplete, soundEnabled, difficulty }: TingModeProps
         completedHands={completedHands}
         currentAttemptTime={currentAttemptTime}
       />
+
+      {/* 简单难度提示 */}
+      {showEasyHint && (
+        <motion.div
+          className="mb-6 p-4 rounded-xl border border-cyan-400/30 bg-cyan-500/10"
+          initial={{ opacity: 0, y: -8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.25 }}
+        >
+          <div className="flex items-start gap-3">
+            <div className="mt-0.5 text-xl">💡</div>
+            <div>
+              <div className="text-cyan-200 font-semibold">简单模式提示已开启</div>
+              <div className="text-sm text-cyan-100/80 mt-1">
+                {easyHintText}
+              </div>
+            </div>
+          </div>
+        </motion.div>
+      )}
 
       {/* 操作按钮 */}
       <div className="flex gap-3 mb-6">
