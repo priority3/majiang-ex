@@ -17,64 +17,206 @@ interface TileAnalysis {
   reason: string
 }
 
-// 评估一张牌的"价值"（简化逻辑：孤张价值低，对子/刻子价值高）
-function evaluateTileValue(tile: Tile, hand: Tile[]): TileAnalysis {
-  const sameValueCount = hand.filter(t => t.value === tile.value && t.type === tile.type).length
-
-  // 刻子或对子中的牌价值更高
-  if (sameValueCount >= 3)
-    return { score: 100, reason: '这是刻子，已经成组，应该优先保留。' }
-  if (sameValueCount >= 2)
-    return { score: 80, reason: '这是对子，后续更容易组合成有效面子。' }
-
-  // 检查是否能组成顺子
-  const hasPrev = hand.some(t => t.type === tile.type && t.value === tile.value - 1)
-  const hasNext = hand.some(t => t.type === tile.type && t.value === tile.value + 1)
-
-  if (hasPrev && hasNext)
-    return { score: 60, reason: '这是顺子中张，两边都能进张，留着更灵活。' }
-  if (hasPrev || hasNext)
-    return { score: 40, reason: '这是顺子边张，能进张但空间比中张更窄。' }
-
-  // 孤张
-  const sameTypeCount = hand.filter(t => t.type === tile.type).length
-  return {
-    score: 20,
-    reason: sameTypeCount === 1
-      ? '这张牌是孤张，这个花色里只有这一张。'
-      : '这张牌和其他牌没有明显搭子关系，优先处理。',
-  }
+interface HandShape {
+  score: number
+  triplets: number
+  pairs: number
+  sequences: number
+  adjacentPairs: number
+  gapPairs: number
+  isolatedTiles: number
 }
 
 function sameTile(a: Tile, b: Tile): boolean {
   return a.type === b.type && a.value === b.value
 }
 
+function tileKey(tile: Tile): string {
+  return `${tile.type}-${tile.value}`
+}
+
+function formatTile(tile: Tile): string {
+  return `${tile.value}${tile.type}`
+}
+
+function removeOneTile(hand: Tile[], target: Tile): Tile[] {
+  const targetIndex = hand.findIndex(tile => sameTile(tile, target))
+  if (targetIndex === -1)
+    return hand
+
+  return hand.filter((_, index) => index !== targetIndex)
+}
+
+function countSameTile(hand: Tile[], target: Tile): number {
+  return hand.filter(tile => sameTile(tile, target)).length
+}
+
+function hasTile(hand: Tile[], type: TileType, value: number): boolean {
+  return value >= 1 && value <= 9 && hand.some(tile => tile.type === type && tile.value === value)
+}
+
+function getTileDiscardPreference(tile: Tile, hand: Tile[]): number {
+  const sameCount = countSameTile(hand, tile)
+  const hasPrev = hasTile(hand, tile.type, tile.value - 1)
+  const hasNext = hasTile(hand, tile.type, tile.value + 1)
+  const hasGapPrev = hasTile(hand, tile.type, tile.value - 2)
+  const hasGapNext = hasTile(hand, tile.type, tile.value + 2)
+  const hasDirect = hasPrev || hasNext
+  const hasGap = hasGapPrev || hasGapNext
+
+  if (sameCount >= 3)
+    return -28
+  if (sameCount === 2)
+    return -18
+  if (hasPrev && hasNext)
+    return -14
+  if (hasDirect)
+    return -8
+  if (hasGap)
+    return -2
+
+  return tile.value === 1 || tile.value === 9 ? 16 : 12
+}
+
+function evaluateRemainingShape(hand: Tile[]): HandShape {
+  let triplets = 0
+  let pairs = 0
+  let sequences = 0
+  let adjacentPairs = 0
+  let gapPairs = 0
+  let isolatedTiles = 0
+  let middleTileWeight = 0
+
+  for (const type of VALID_TYPES) {
+    const counts = Array.from({ length: 10 }, () => 0)
+    for (const tile of hand) {
+      if (tile.type === type)
+        counts[tile.value] += 1
+    }
+
+    for (let value = 1; value <= 9; value++) {
+      const count = counts[value]
+      if (count === 0)
+        continue
+
+      if (count >= 3)
+        triplets += 1
+      if (count >= 2)
+        pairs += 1
+
+      if (value >= 3 && value <= 7)
+        middleTileWeight += count
+
+      const hasDirect = counts[value - 1] > 0 || counts[value + 1] > 0
+      const hasGap = counts[value - 2] > 0 || counts[value + 2] > 0
+      if (count === 1 && !hasDirect && !hasGap)
+        isolatedTiles += 1
+    }
+
+    for (let value = 1; value <= 7; value++)
+      sequences += Math.min(counts[value], counts[value + 1], counts[value + 2])
+
+    for (let value = 1; value <= 8; value++)
+      adjacentPairs += Math.min(counts[value], counts[value + 1])
+
+    for (let value = 1; value <= 7; value++)
+      gapPairs += Math.min(counts[value], counts[value + 2])
+  }
+
+  const score = triplets * 30
+    + sequences * 26
+    + pairs * 18
+    + adjacentPairs * 10
+    + gapPairs * 5
+    + middleTileWeight
+    - isolatedTiles * 12
+
+  return {
+    score,
+    triplets,
+    pairs,
+    sequences,
+    adjacentPairs,
+    gapPairs,
+    isolatedTiles,
+  }
+}
+
+function buildDiscardReason(tile: Tile, hand: Tile[], remainingShape: HandShape): string {
+  const sameCount = countSameTile(hand, tile)
+  const hasPrev = hasTile(hand, tile.type, tile.value - 1)
+  const hasNext = hasTile(hand, tile.type, tile.value + 1)
+  const hasGapPrev = hasTile(hand, tile.type, tile.value - 2)
+  const hasGapNext = hasTile(hand, tile.type, tile.value + 2)
+  const keptMelds = remainingShape.triplets + remainingShape.sequences
+  const keptWaits = remainingShape.adjacentPairs + remainingShape.gapPairs
+  const shapeSummary = `打出 ${formatTile(tile)} 后，剩下手牌可保留 ${keptMelds} 组已成型组合、${remainingShape.pairs} 组对子和 ${keptWaits} 组搭子。`
+
+  if (sameCount === 1 && !hasPrev && !hasNext && !hasGapPrev && !hasGapNext) {
+    return `${shapeSummary}${formatTile(tile)} 没有同张、邻张或隔张联系，是当前最孤立的牌。`
+  }
+
+  if (sameCount === 1 && !hasPrev && !hasNext) {
+    return `${shapeSummary}${formatTile(tile)} 只有隔张联系，进张面比连续搭子更窄。`
+  }
+
+  if (sameCount === 1 && (hasPrev || hasNext) && !(hasPrev && hasNext)) {
+    return `${shapeSummary}${formatTile(tile)} 只有一侧邻张，保留其他对子和双向连张的收益更高。`
+  }
+
+  return `${shapeSummary}这个选择让剩余手牌的成组、对子和连续搭子总评分最高。`
+}
+
+function analyzeDiscard(tile: Tile, hand: Tile[]): TileAnalysis {
+  const remainingHand = removeOneTile(hand, tile)
+  const remainingShape = evaluateRemainingShape(remainingHand)
+
+  return {
+    score: remainingShape.score + getTileDiscardPreference(tile, hand),
+    reason: buildDiscardReason(tile, hand, remainingShape),
+  }
+}
+
+function generateDeck(): Tile[] {
+  const deck: Tile[] = []
+  for (const type of VALID_TYPES) {
+    for (let value = 1; value <= 9; value++) {
+      for (let count = 0; count < 4; count++)
+        deck.push({ type, value })
+    }
+  }
+  return deck
+}
+
 // 生成一手牌
 function generateHand(): { hand: Tile[], bestDiscard: Tile, discardReason: string } {
   const hand: Tile[] = []
+  const deck = generateDeck()
 
-  // 生成13张牌，确保有一定规律
-  const types: TileType[] = VALID_TYPES
   for (let i = 0; i < 13; i++) {
-    const type = types[Math.floor(Math.random() * types.length)]
-    const value = Math.floor(Math.random() * 9) + 1
-    hand.push({ type, value })
+    const index = Math.floor(Math.random() * deck.length)
+    hand.push(deck.splice(index, 1)[0])
   }
 
-  // 找出价值最低的牌作为最佳出牌
-  let minTile = hand[0]
-  let minAnalysis = evaluateTileValue(hand[0], hand)
+  let bestTile = hand[0]
+  let bestAnalysis = analyzeDiscard(hand[0], hand)
+  const checkedTiles = new Set<string>([tileKey(hand[0])])
 
   for (let i = 1; i < hand.length; i++) {
-    const analysis = evaluateTileValue(hand[i], hand)
-    if (analysis.score < minAnalysis.score) {
-      minAnalysis = analysis
-      minTile = hand[i]
+    const tile = hand[i]
+    const key = tileKey(tile)
+    if (checkedTiles.has(key))
+      continue
+
+    checkedTiles.add(key)
+    const analysis = analyzeDiscard(tile, hand)
+    if (analysis.score > bestAnalysis.score) {
+      bestAnalysis = analysis
+      bestTile = tile
     }
   }
 
-  return { hand, bestDiscard: minTile, discardReason: minAnalysis.reason }
+  return { hand, bestDiscard: bestTile, discardReason: bestAnalysis.reason }
 }
 
 export function DiscardMode({ onComplete }: DiscardModeProps) {
@@ -168,6 +310,20 @@ export function DiscardMode({ onComplete }: DiscardModeProps) {
     onCompleteRef.current(scoreRef.current, 30 - timeLeft)
   }
 
+  const selectedTileIsCorrect = selectedTile ? sameTile(selectedTile, gameState.bestDiscard) : false
+  const actionLabel = showResult
+    ? round < maxRounds ? '下一把' : '完成练习'
+    : '确认出牌'
+  const canUseActionButton = showResult || !!selectedTile
+  const handleAction = () => {
+    if (showResult) {
+      handleNextHand()
+      return
+    }
+
+    handleConfirm()
+  }
+
   return (
     <div className="glass-card p-6">
       {/* 积分和进度 */}
@@ -240,7 +396,7 @@ export function DiscardMode({ onComplete }: DiscardModeProps) {
       </div>
 
       {/* 推荐分析 */}
-      {(selectedTile || showResult) && (
+      {showResult && (
         <motion.div
           className="mb-6 p-4 rounded-xl border border-cyan-400/20 bg-cyan-500/10"
           initial={{ opacity: 0, y: 8 }}
@@ -262,9 +418,9 @@ export function DiscardMode({ onComplete }: DiscardModeProps) {
                 理由：
                 {gameState.discardReason}
               </div>
-              {selectedTile && !sameTile(selectedTile, gameState.bestDiscard) && !showResult && (
+              {selectedTile && !selectedTileIsCorrect && (
                 <div className="mt-2 text-xs text-cyan-100/60">
-                  你当前选择：
+                  你选择的是：
                   {selectedTile.value}
                   {selectedTile.type}
                 </div>
@@ -278,14 +434,14 @@ export function DiscardMode({ onComplete }: DiscardModeProps) {
       {showResult && (
         <motion.div
           className={`text-center p-4 rounded-xl mb-4 ${
-            selectedTile?.type === gameState.bestDiscard.type && selectedTile?.value === gameState.bestDiscard.value
+            selectedTileIsCorrect
               ? 'bg-green-500/20 border border-green-500/30'
               : 'bg-red-500/20 border border-red-500/30'
           }`}
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
         >
-          {selectedTile?.type === gameState.bestDiscard.type && selectedTile?.value === gameState.bestDiscard.value
+          {selectedTileIsCorrect
             ? (
                 <div className="text-green-400 font-bold">
                   <span className="text-2xl mr-2">✓</span>
@@ -306,30 +462,16 @@ export function DiscardMode({ onComplete }: DiscardModeProps) {
         </motion.div>
       )}
 
-      {/* 确认按钮 */}
-      {!showResult && (
-        <motion.button
-          className={`neon-button w-full ${selectedTile ? 'neon-button-success' : 'opacity-50 cursor-not-allowed'}`}
-          onClick={handleConfirm}
-          disabled={!selectedTile}
-          whileHover={selectedTile ? { scale: 1.02 } : {}}
-          whileTap={selectedTile ? { scale: 0.98 } : {}}
-        >
-          确认出牌
-        </motion.button>
-      )}
-
-      {/* 下一把 */}
-      {showResult && (
-        <motion.button
-          className="neon-button neon-button-success w-full"
-          onClick={handleNextHand}
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
-        >
-          {round < maxRounds ? '下一把' : '完成练习'}
-        </motion.button>
-      )}
+      {/* 操作按钮 */}
+      <motion.button
+        className={`neon-button w-full ${canUseActionButton ? 'neon-button-success' : 'opacity-50 cursor-not-allowed'}`}
+        onClick={handleAction}
+        disabled={!canUseActionButton}
+        whileHover={canUseActionButton ? { scale: 1.02 } : {}}
+        whileTap={canUseActionButton ? { scale: 0.98 } : {}}
+      >
+        {actionLabel}
+      </motion.button>
     </div>
   )
 }
