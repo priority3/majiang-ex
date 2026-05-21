@@ -10,6 +10,7 @@ import { useTimer } from '../hooks/useTimer'
 import { generateSingleSequenceTiles } from '../utils/majiang'
 import { AnimatedMajiangTile } from './AnimatedMajiangTile'
 import { FeedbackSection } from './FeedbackSection'
+import { ParticleBurst } from './ParticleBurst'
 import { SortButton } from './SortButton'
 import { StatisticsSection } from './StatisticsSection'
 import { TimerDisplay } from './TimerDisplay'
@@ -69,6 +70,7 @@ export function TingMode({ onComplete, soundEnabled, difficulty }: TingModeProps
   const [score, setScore] = useState(0)
   const [streak, setStreak] = useState(0)
   const [showNoTingOption, setShowNoTingOption] = useState(false)
+  const [showBurst, setShowBurst] = useState(false)
 
   const handleGenerateNewHand = () => {
     generateNewHand()
@@ -106,6 +108,7 @@ export function TingMode({ onComplete, soundEnabled, difficulty }: TingModeProps
 
       // 计算得分
       if (isAnswerCorrect) {
+        setShowBurst(true)
         const baseScore = 100
         const timeBonus = Math.floor(timeLeft / 3)
         const streakBonus = streak * 20
@@ -177,7 +180,8 @@ export function TingMode({ onComplete, soundEnabled, difficulty }: TingModeProps
   }
 
   return (
-    <div className="glass-card p-6">
+    <div className="glass-card p-6 relative">
+      <ParticleBurst show={showBurst} onComplete={() => setShowBurst(false)} />
       {/* 积分显示 */}
       <div className="flex justify-between items-center mb-4 p-3 bg-black/20 rounded-xl">
         <div className="text-center">
