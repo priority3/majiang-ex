@@ -84,6 +84,13 @@ export function TingMode({ onComplete, soundEnabled, difficulty }: TingModeProps
       playSound('newgame')
   }
 
+  const handleNextRound = () => {
+    if (round < maxRounds) {
+      setRound(prev => prev + 1)
+      handleGenerateNewHand()
+    }
+  }
+
   const handleConfirmSelection = () => {
     const endTime = handleConfirm()
     if (endTime) {
@@ -134,10 +141,7 @@ export function TingMode({ onComplete, soundEnabled, difficulty }: TingModeProps
       onComplete(isAnswerCorrect ? 100 : 0, timeSpent || 0)
 
       setTimeout(() => {
-        if (round < maxRounds) {
-          setRound(prev => prev + 1)
-          handleGenerateNewHand()
-        }
+        handleNextRound()
       }, 2000)
     }
   }
@@ -178,6 +182,55 @@ export function TingMode({ onComplete, soundEnabled, difficulty }: TingModeProps
     setShowNoTingOption(false)
     handleTileSelect(tile)
   }
+
+  // 键盘快捷键
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (showFeedback) {
+        if (e.key === ' ' || e.key === 'Enter') {
+          e.preventDefault()
+          handleNextRound()
+        }
+        return
+      }
+
+      switch (e.key) {
+        case ' ':
+        case 'Enter':
+          if (selectedTiles.length > 0 || showNoTingOption) {
+            e.preventDefault()
+            handleConfirmSelection()
+          }
+          break
+        case 'Backspace':
+        case 'Delete':
+          if (selectedTiles.length > 0) {
+            e.preventDefault()
+            const lastTile = selectedTiles[selectedTiles.length - 1]
+            handleTileSelect(lastTile)
+          }
+          break
+        case 'n':
+        case 'N':
+          e.preventDefault()
+          if (!showNoTingOption)
+            handleNoTingClick()
+          else
+            setShowNoTingOption(false)
+          break
+        case 'r':
+        case 'R':
+          if (e.ctrlKey || e.metaKey)
+            break
+          e.preventDefault()
+          handleGenerateNewHand()
+          break
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [selectedTiles, showNoTingOption, showFeedback, handleConfirmSelection, handleNextRound, handleNoTingClick, handleGenerateNewHand, handleTileSelect])
 
   return (
     <div className="glass-card p-6 relative">
