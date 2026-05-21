@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { useState } from 'react'
 import { useGameState } from '../hooks/useGameState'
 import { useSound } from '../hooks/useSound'
+import { trackGameComplete, trackModeSelect } from '../utils/tracker'
 import { AchievementSystem } from './AchievementSystem'
 import { CelebrationEffect } from './CelebrationEffect'
 import { DiscardMode } from './DiscardMode'
@@ -44,13 +45,16 @@ export function MajiangHand() {
   const handleModeSelect = (mode: GameMode) => {
     setMode(mode)
     playSound('newgame')
+    trackModeSelect(mode)
   }
 
+  const gameStartTime = useState(Date.now())[0]
   const handleGameComplete = (gameScore: number, _time: number) => {
     const isWin = gameScore > 0
     const prevLevel = level
 
     addScore(gameScore, isWin, currentMode)
+    trackGameComplete(currentMode, gameScore, isWin, Date.now() - gameStartTime)
 
     if (soundEnabled) {
       playSound(isWin ? 'correct' : 'wrong')
