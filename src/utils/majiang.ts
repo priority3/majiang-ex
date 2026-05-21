@@ -229,6 +229,132 @@ export function getTingInfo(tiles: Tile[]): Tile[] {
   return tingTiles
 }
 
+// 计算手牌能胡几张牌（返回不同的牌的数量）
+export function countTingTiles(hand: Tile[]): number {
+  if (hand.length !== 13)
+    return 0
+
+  const types = new Set(hand.map(t => t.type))
+  if (types.size > 2)
+    return 0
+
+  const excludeType = types.size === 1
+    ? VALID_TYPES.find(t => !types.has(t))!
+    : VALID_TYPES.find(t => !types.has(t))!
+
+  const remainingTiles = generateFullTiles(excludeType)
+  const seen = new Set<string>()
+  let count = 0
+
+  for (const tile of remainingTiles) {
+    const key = `${tile.type}${tile.value}`
+    if (seen.has(key))
+      continue
+    seen.add(key)
+
+    const testTiles = [...hand, tile]
+    if (canHu(testTiles)) {
+      count++
+    }
+  }
+
+  return count
+}
+
+// 生成特定牌型的有效手牌
+export function generatePatternHand(patternId: string): Tile[] {
+  switch (patternId) {
+    case 'qiduizi': {
+      const used = new Set<string>()
+      const hand: Tile[] = []
+      while (hand.length < 14) {
+        const type = VALID_TYPES[Math.floor(Math.random() * VALID_TYPES.length)]
+        const value = Math.floor(Math.random() * 9) + 1
+        const key = `${type}${value}`
+        if (!used.has(key)) {
+          hand.push({ type, value }, { type, value })
+          used.add(key)
+        }
+      }
+      return hand
+    }
+    case 'pengpenghu': {
+      const hand: Tile[] = []
+      for (let i = 0; i < 4; i++) {
+        const type = VALID_TYPES[Math.floor(Math.random() * VALID_TYPES.length)]
+        const value = Math.floor(Math.random() * 9) + 1
+        hand.push({ type, value }, { type, value }, { type, value })
+      }
+      const type = VALID_TYPES[Math.floor(Math.random() * VALID_TYPES.length)]
+      const value = Math.floor(Math.random() * 9) + 1
+      hand.push({ type, value }, { type, value })
+      return hand
+    }
+    case 'qingyise': {
+      const type = VALID_TYPES[Math.floor(Math.random() * VALID_TYPES.length)]
+      const hand: Tile[] = []
+      // 生成有效清一色：4组面子+1对将
+      const values: number[] = []
+      for (let i = 0; i < 4; i++) {
+        const v = Math.floor(Math.random() * 7) + 1
+        values.push(v, v + 1, v + 2)
+      }
+      const pairValue = Math.floor(Math.random() * 9) + 1
+      values.push(pairValue, pairValue)
+      for (const v of values) {
+        hand.push({ type, value: v })
+      }
+      return hand
+    }
+    case 'hunyise': {
+      const mainType = VALID_TYPES[Math.floor(Math.random() * VALID_TYPES.length)]
+      const otherType = VALID_TYPES.filter(t => t !== mainType)[0]
+      const hand: Tile[] = []
+      // 主花色：3组面子
+      for (let i = 0; i < 3; i++) {
+        const v = Math.floor(Math.random() * 7) + 1
+        hand.push({ type: mainType, value: v })
+        hand.push({ type: mainType, value: v + 1 })
+        hand.push({ type: mainType, value: v + 2 })
+      }
+      // 主花色对子
+      const pv = Math.floor(Math.random() * 9) + 1
+      hand.push({ type: mainType, value: pv })
+      hand.push({ type: mainType, value: pv })
+      // 其他花色刻子
+      const ov = Math.floor(Math.random() * 9) + 1
+      hand.push({ type: otherType, value: ov })
+      hand.push({ type: otherType, value: ov })
+      hand.push({ type: otherType, value: ov })
+      return hand
+    }
+    default: {
+      // 平胡：普通牌型，两种花色
+      const type1 = VALID_TYPES[0]
+      const type2 = VALID_TYPES[1]
+      const hand: Tile[] = []
+      // 4组面子
+      for (let i = 0; i < 2; i++) {
+        const v = Math.floor(Math.random() * 7) + 1
+        hand.push({ type: type1, value: v })
+        hand.push({ type: type1, value: v + 1 })
+        hand.push({ type: type1, value: v + 2 })
+      }
+      for (let i = 0; i < 2; i++) {
+        const v = Math.floor(Math.random() * 7) + 1
+        hand.push({ type: type2, value: v })
+        hand.push({ type: type2, value: v + 1 })
+        hand.push({ type: type2, value: v + 2 })
+      }
+      // 对子
+      const pv = Math.floor(Math.random() * 9) + 1
+      hand.push({ type: type1, value: pv })
+      hand.push({ type: type1, value: pv })
+      return hand
+    }
+  }
+}
+
 export function generateSingleSequenceTiles(excludeType: TileType) {
   const singleSequenceTiles: Tile[] = []
   const tiles = generateFullTiles(excludeType)
