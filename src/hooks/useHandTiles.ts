@@ -37,7 +37,7 @@ export function useHandTiles() {
     }
     else {
       const sortedHand = [...handInfo.hand].sort((a, b) => {
-        const typeOrder = { 条: 0, 筒: 1, 万: 2 }
+        const typeOrder = { 万: 0, 筒: 1, 条: 2 }
         const typeCompare = typeOrder[a.type] - typeOrder[b.type]
         if (typeCompare !== 0)
           return typeCompare
