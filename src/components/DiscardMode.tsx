@@ -13,15 +13,19 @@ function evaluateTileValue(tile: Tile, hand: Tile[]): number {
   const sameValueCount = hand.filter(t => t.value === tile.value && t.type === tile.type).length
 
   // 刻子或对子中的牌价值更高
-  if (sameValueCount >= 3) return 100 // 刻子
-  if (sameValueCount >= 2) return 80 // 对子
+  if (sameValueCount >= 3)
+    return 100 // 刻子
+  if (sameValueCount >= 2)
+    return 80 // 对子
 
   // 检查是否能组成顺子
   const hasPrev = hand.some(t => t.type === tile.type && t.value === tile.value - 1)
   const hasNext = hand.some(t => t.type === tile.type && t.value === tile.value + 1)
 
-  if (hasPrev && hasNext) return 60 // 顺子中间
-  if (hasPrev || hasNext) return 40 // 顺子边张
+  if (hasPrev && hasNext)
+    return 60 // 顺子中间
+  if (hasPrev || hasNext)
+    return 40 // 顺子边张
 
   // 孤张
   return 20
@@ -55,8 +59,10 @@ function generateHand(): { hand: Tile[], bestDiscard: Tile, discardReason: strin
   let reason = '孤张'
   if (minValue <= 20) {
     const sameTypeCount = hand.filter(t => t.type === minTile.type).length
-    if (sameTypeCount === 1) reason = '该花色仅此一张'
-    else reason = '与其他牌无关联'
+    if (sameTypeCount === 1)
+      reason = '该花色仅此一张'
+    else
+      reason = '与其他牌无关联'
   }
 
   return { hand, bestDiscard: minTile, discardReason: reason }
@@ -76,7 +82,7 @@ export function DiscardMode({ onComplete }: DiscardModeProps) {
   // 倒计时
   useState(() => {
     const timer = setInterval(() => {
-      setTimeLeft(prev => {
+      setTimeLeft((prev) => {
         if (prev <= 1) {
           clearInterval(timer)
           setIsRunning(false)
@@ -148,7 +154,8 @@ export function DiscardMode({ onComplete }: DiscardModeProps) {
         <div className="text-center">
           <div className="text-sm text-gray-400">倒计时</div>
           <div className={`text-2xl font-bold ${timeLeft <= 10 ? 'text-red-400' : 'text-cyan-400'}`}>
-            {timeLeft}s
+            {timeLeft}
+            s
           </div>
         </div>
         <div className="text-center">

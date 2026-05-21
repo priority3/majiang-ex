@@ -12,12 +12,19 @@ interface MajiangTileProps {
 
 // 万子的传统中文数字
 const WAN_CHARS: Record<number, string> = {
-  1: '一', 2: '二', 3: '三', 4: '四', 5: '五',
-  6: '六', 7: '七', 8: '八', 9: '九',
+  1: '一',
+  2: '二',
+  3: '三',
+  4: '四',
+  5: '五',
+  6: '六',
+  7: '七',
+  8: '八',
+  9: '九',
 }
 
 // 筒子的圆点排列位置 (传统布局 - 更大更清晰)
-const TONG_POSITIONS: Record<number, { x: number; y: number }[]> = {
+const TONG_POSITIONS: Record<number, { x: number, y: number }[]> = {
   1: [{ x: 50, y: 50 }],
   2: [{ x: 50, y: 30 }, { x: 50, y: 70 }],
   3: [{ x: 50, y: 25 }, { x: 35, y: 65 }, { x: 65, y: 65 }],
@@ -67,7 +74,7 @@ function TongDot({ count, small }: { count: number, small: boolean }) {
 function TiaoBar({ count, small }: { count: number, small: boolean }) {
   // 传统条子布局
   const getBarPositions = (n: number) => {
-    const positions: { x: number; y: number }[] = []
+    const positions: { x: number, y: number }[] = []
     if (n <= 3) {
       // 单排
       for (let i = 0; i < n; i++) {

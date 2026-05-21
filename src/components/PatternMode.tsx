@@ -10,11 +10,11 @@ interface PatternModeProps {
 
 // 牌型定义
 const PATTERNS = [
-  { id: 'qiduizi', name: '七对子', desc: '7个对子组成的胡牌', icon: '🀄' },
-  { id: 'pengpenghu', name: '碰碰胡', desc: '全部由刻子和将组成', icon: '🎯' },
-  { id: 'qingyise', name: '清一色', desc: '全部同一花色', icon: '✨' },
-  { id: 'hunyise', name: '混一色', desc: '只有一种花色+字牌', icon: '🌈' },
-  { id: 'pinghu', name: '平胡', desc: '基本胡牌牌型', icon: ' basic' },
+  { id: 'qiduizi', name: '七对子', desc: '7个对子组成的胡牌', icon: '🀄', color: 'from-purple-500 to-pink-500' },
+  { id: 'pengpenghu', name: '碰碰胡', desc: '全部由刻子和将组成', icon: '🎯', color: 'from-red-500 to-orange-500' },
+  { id: 'qingyise', name: '清一色', desc: '全部同一花色', icon: '✨', color: 'from-blue-500 to-cyan-500' },
+  { id: 'hunyise', name: '混一色', desc: '只有一种花色+字牌', icon: '🌈', color: 'from-green-500 to-emerald-500' },
+  { id: 'pinghu', name: '平胡', desc: '基本胡牌牌型', icon: '📋', color: 'from-yellow-500 to-amber-500' },
 ]
 
 // 生成特定牌型的手牌
@@ -57,8 +57,21 @@ function generatePatternHand(pattern: typeof PATTERNS[0]): { hand: Tile[], patte
       }
       break
     }
+    case 'hunyise': {
+      // 混一色：一种花色为主
+      const mainType = VALID_TYPES[Math.floor(Math.random() * VALID_TYPES.length)]
+      for (let i = 0; i < 12; i++) {
+        const value = Math.floor(Math.random() * 9) + 1
+        hand.push({ type: mainType, value })
+      }
+      // 添加2张其他花色
+      const otherType = VALID_TYPES.filter(t => t !== mainType)[0]
+      hand.push({ type: otherType, value: Math.floor(Math.random() * 9) + 1 })
+      hand.push({ type: otherType, value: Math.floor(Math.random() * 9) + 1 })
+      break
+    }
     default: {
-      // 普通牌型
+      // 平胡：普通牌型
       for (let i = 0; i < 13; i++) {
         const type = VALID_TYPES[Math.floor(Math.random() * VALID_TYPES.length)]
         const value = Math.floor(Math.random() * 9) + 1
@@ -72,14 +85,15 @@ function generatePatternHand(pattern: typeof PATTERNS[0]): { hand: Tile[], patte
 }
 
 export function PatternMode({ onComplete }: PatternModeProps) {
-  const [currentPattern] = useState(() => PATTERNS[Math.floor(Math.random() * PATTERNS.length)])
-  const [gameState] = useState(() => generatePatternHand(currentPattern))
+  const [currentPattern, setCurrentPattern] = useState(() => PATTERNS[Math.floor(Math.random() * PATTERNS.length)])
+  const [gameState, setGameState] = useState(() => generatePatternHand(currentPattern))
   const [selectedPattern, setSelectedPattern] = useState<string | null>(null)
   const [showResult, setShowResult] = useState(false)
   const [score, setScore] = useState(0)
+  const [streak, setStreak] = useState(0)
   const [round, setRound] = useState(1)
   const [startTime] = useState(Date.now())
-  const maxRounds = 5
+  const maxRounds = 10
 
   const handleSelectPattern = (patternId: string) => {
     if (showResult)
@@ -93,16 +107,25 @@ export function PatternMode({ onComplete }: PatternModeProps) {
 
     setShowResult(true)
     const isCorrect = selectedPattern === currentPattern.id
+
     if (isCorrect) {
-      setScore(prev => prev + 200)
+      const streakBonus = streak * 20
+      setScore(prev => prev + 200 + streakBonus)
+      setStreak(prev => prev + 1)
+    }
+    else {
+      setStreak(0)
+      setScore(prev => Math.max(0, prev - 50))
     }
 
     setTimeout(() => {
       if (round < maxRounds) {
         setRound(prev => prev + 1)
+        const newPattern = PATTERNS[Math.floor(Math.random() * PATTERNS.length)]
+        setCurrentPattern(newPattern)
+        setGameState(generatePatternHand(newPattern))
         setSelectedPattern(null)
         setShowResult(false)
-        // 这里应该重新生成，简化处理
       }
       else {
         const timeSpent = Math.floor((Date.now() - startTime) / 1000)
@@ -113,22 +136,25 @@ export function PatternMode({ onComplete }: PatternModeProps) {
 
   return (
     <div className="glass-card p-6">
-      {/* 进度显示 */}
-      <div className="flex justify-between items-center mb-6">
-        <div className="text-gray-400">
-          第
-          {' '}
-          <span className="text-white font-bold">{round}</span>
-          {' '}
-          /
-          {' '}
-          {maxRounds}
-          {' '}
-          题
+      {/* 积分和进度 */}
+      <div className="flex justify-between items-center mb-4 p-3 bg-black/20 rounded-xl">
+        <div className="text-center">
+          <div className="text-sm text-gray-400">当前积分</div>
+          <div className="text-2xl font-bold text-yellow-400">{score}</div>
         </div>
-        <div className="text-gray-400">
-          得分：
-          <span className="text-yellow-400 font-bold">{score}</span>
+        <div className="text-center">
+          <div className="text-sm text-gray-400">连击</div>
+          <div className="text-2xl font-bold text-orange-400">
+            {streak > 0 ? `${streak}x` : '-'}
+          </div>
+        </div>
+        <div className="text-center">
+          <div className="text-sm text-gray-400">本局</div>
+          <div className="text-2xl font-bold text-cyan-400">
+            {round}
+            /
+            {maxRounds}
+          </div>
         </div>
       </div>
 
@@ -163,9 +189,9 @@ export function PatternMode({ onComplete }: PatternModeProps) {
             key={pattern.id}
             className={`p-4 rounded-xl text-left transition-all ${
               selectedPattern === pattern.id
-                ? 'bg-blue-500/20 border-2 border-blue-500/50'
+                ? `bg-gradient-to-r ${pattern.color} text-white border-2 border-white/30`
                 : 'bg-white/5 border-2 border-transparent hover:bg-white/10'
-            } ${showResult && pattern.id === currentPattern.id ? 'ring-2 ring-green-500' : ''}`}
+            } ${showResult && pattern.id === currentPattern.id ? 'ring-2 ring-green-500 ring-offset-2 ring-offset-transparent' : ''}`}
             onClick={() => handleSelectPattern(pattern.id)}
             whileHover={!showResult ? { scale: 1.02 } : {}}
             whileTap={!showResult ? { scale: 0.98 } : {}}
@@ -173,8 +199,8 @@ export function PatternMode({ onComplete }: PatternModeProps) {
             <div className="flex items-center gap-3">
               <span className="text-2xl">{pattern.icon}</span>
               <div>
-                <div className="text-white font-bold">{pattern.name}</div>
-                <div className="text-xs text-gray-400">{pattern.desc}</div>
+                <div className="font-bold">{pattern.name}</div>
+                <div className="text-xs opacity-80">{pattern.desc}</div>
               </div>
             </div>
           </motion.button>
