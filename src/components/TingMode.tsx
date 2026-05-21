@@ -95,7 +95,7 @@ export function TingMode({ onComplete, soundEnabled, difficulty }: TingModeProps
   }
 
   const handleConfirmSelection = () => {
-    const endTime = handleConfirm()
+    const endTime = handleConfirm(showNoTingOption)
     if (endTime) {
       end()
       setIsTimerRunning(false)
@@ -402,7 +402,7 @@ export function TingMode({ onComplete, soundEnabled, difficulty }: TingModeProps
                     keyPrefix="ting-"
                     selected={isSelected(tile)}
                     correct={showFeedback && handInfo.isTing && tingTiles.some(t => t.type === tile.type && t.value === tile.value)}
-                    error={showFeedback && handInfo.isTing && selectedTiles.some(t => t.type === tile.type && t.value === tile.value) && !tingTiles.some(t => t.type === tile.type && t.value === tile.value)}
+                    error={showFeedback && selectedTiles.some(t => t.type === tile.type && t.value === tile.value) && !tingTiles.some(t => t.type === tile.type && t.value === tile.value)}
                     onClick={() => handleTileSelectWrapper(tile)}
                   />
                 ))

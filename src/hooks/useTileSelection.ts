@@ -28,8 +28,8 @@ export function useTileSelection() {
     }
   }
 
-  const handleConfirm = () => {
-    if (selectedTiles.length === 0)
+  const handleConfirm = (allowEmptySelection = false) => {
+    if (selectedTiles.length === 0 && !allowEmptySelection)
       return
 
     setShowFeedback(true)

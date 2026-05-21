@@ -89,12 +89,12 @@ export function MajiangTile({
 }: MajiangTileProps) {
   const TileImage = TILE_COMPONENTS[tile.type][tile.value]
   const sizeClass = small ? 'w-10 h-14' : 'w-14 h-20'
-  const stateClass = selected
-    ? 'selected'
+  const stateClass = error
+    ? 'error'
     : correct
       ? 'correct'
-      : error
-        ? 'error'
+      : selected
+        ? 'selected'
         : ''
 
   const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
@@ -120,6 +120,20 @@ export function MajiangTile({
       <div className="mahjong-tile-inner">
         <div className="tile-face">
           <TileImage className="tile-svg" aria-hidden="true" focusable="false" />
+          {(selected || correct || error) && (
+            <span
+              className={`tile-badge ${
+                error
+                  ? 'tile-badge-error'
+                  : correct
+                    ? 'tile-badge-correct'
+                    : 'tile-badge-selected'
+              }`}
+              aria-hidden="true"
+            >
+              {error ? '✕' : '✓'}
+            </span>
+          )}
         </div>
       </div>
     </div>

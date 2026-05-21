@@ -108,15 +108,15 @@ body {
   height: 100%;
   position: relative;
   transform-style: preserve-3d;
-  transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: transform 0.25s ease, box-shadow 0.25s ease, filter 0.25s ease;
   border-radius: 8px;
 }
 
 .mahjong-tile:hover .mahjong-tile-inner {
-  transform: translateY(-8px) rotateX(5deg);
+  transform: translateY(-4px) rotateX(3deg);
   box-shadow:
-    0 12px 24px rgba(0, 0, 0, 0.4),
-    0 0 20px rgba(0, 242, 254, 0.3);
+    0 12px 24px rgba(0, 0, 0, 0.35),
+    0 0 18px rgba(0, 242, 254, 0.25);
 }
 
 /* 牌面正面 */
@@ -133,7 +133,7 @@ body {
   background: transparent;
   border: 0;
   box-shadow:
-    0 4px 8px rgba(0, 0, 0, 0.3),
+    0 4px 8px rgba(0, 0, 0, 0.32),
     0 1px 0 rgba(255, 255, 255, 0.5);
   overflow: hidden;
 }
@@ -143,38 +143,89 @@ body {
   width: 100%;
   height: 100%;
   border-radius: 8px;
+  pointer-events: none;
+}
+
+.tile-badge {
+  position: absolute;
+  right: 3px;
+  top: 3px;
+  width: 15px;
+  height: 15px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 900;
+  line-height: 1;
+  color: #fff;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.28);
+}
+
+.tile-badge-selected {
+  background: linear-gradient(135deg, #2f9cff, #6fd3ff);
+}
+
+.tile-badge-correct {
+  background: linear-gradient(135deg, #38c172, #72e08f);
+}
+
+.tile-badge-error {
+  background: linear-gradient(135deg, #ef4444, #fb7185);
 }
 
 /* 选中状态 */
 .mahjong-tile.selected .tile-face {
-  background: linear-gradient(145deg, #e3f2fd 0%, #bbdefb 50%, #90caf9 100%);
-  border-color: #42a5f5;
   box-shadow:
-    0 0 15px rgba(66, 165, 245, 0.6),
-    0 0 30px rgba(66, 165, 245, 0.3),
-    inset 0 2px 4px rgba(255, 255, 255, 0.8);
+    0 0 0 2px rgba(86, 182, 255, 0.95),
+    0 0 0 6px rgba(86, 182, 255, 0.18),
+    0 12px 28px rgba(0, 0, 0, 0.48),
+    0 0 24px rgba(66, 165, 245, 0.45);
+  filter: brightness(1.08) saturate(1.08);
+}
+
+.mahjong-tile.selected .tile-svg {
+  filter: drop-shadow(0 0 10px rgba(94, 179, 255, 0.45));
 }
 
 .mahjong-tile.selected .mahjong-tile-inner {
-  transform: translateY(-12px);
+  transform: translateY(-10px) scale(1.03);
 }
 
-/* 正确答案高亮 */
 .mahjong-tile.correct .tile-face {
-  background: linear-gradient(145deg, #e8f5e9 0%, #c8e6c9 50%, #a5d6a7 100%);
-  border-color: #66bb6a;
   box-shadow:
-    0 0 20px rgba(102, 187, 106, 0.6),
-    0 0 40px rgba(102, 187, 106, 0.3);
+    0 0 0 2px rgba(102, 187, 106, 0.9),
+    0 0 0 6px rgba(102, 187, 106, 0.18),
+    0 12px 28px rgba(0, 0, 0, 0.48),
+    0 0 24px rgba(102, 187, 106, 0.42);
+  filter: brightness(1.06) saturate(1.04);
+}
+
+.mahjong-tile.correct .tile-svg {
+  filter: drop-shadow(0 0 10px rgba(102, 187, 106, 0.42));
+}
+
+.mahjong-tile.correct .mahjong-tile-inner {
+  transform: translateY(-8px) scale(1.02);
 }
 
 /* 错误答案高亮 */
 .mahjong-tile.error .tile-face {
-  background: linear-gradient(145deg, #ffebee 0%, #ffcdd2 50%, #ef9a9a 100%);
-  border-color: #ef5350;
   box-shadow:
-    0 0 20px rgba(239, 83, 80, 0.6),
-    0 0 40px rgba(239, 83, 80, 0.3);
+    0 0 0 2px rgba(239, 83, 80, 0.92),
+    0 0 0 6px rgba(239, 83, 80, 0.18),
+    0 12px 28px rgba(0, 0, 0, 0.48),
+    0 0 24px rgba(239, 83, 80, 0.45);
+  filter: brightness(1.06) saturate(1.1);
+}
+
+.mahjong-tile.error .tile-svg {
+  filter: drop-shadow(0 0 10px rgba(239, 83, 80, 0.4));
+}
+
+.mahjong-tile.error .mahjong-tile-inner {
+  transform: translateY(-8px) scale(1.02);
 }
 
 /* 按钮霓虹效果 */
