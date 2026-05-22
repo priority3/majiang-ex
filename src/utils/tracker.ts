@@ -218,18 +218,12 @@ async function send(payload: Record<string, unknown>) {
 
   try {
     const jsonStr = JSON.stringify(data)
-    if (navigator.sendBeacon) {
-      const blob = new Blob([jsonStr], { type: 'application/json' })
-      navigator.sendBeacon(`${TRACKER_URL}/api/track`, blob)
-    }
-    else {
-      fetch(`${TRACKER_URL}/api/track`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: jsonStr,
-        keepalive: true,
-      })
-    }
+    fetch(`${TRACKER_URL}/api/track`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: jsonStr,
+      keepalive: true,
+    })
   }
   catch {
     // 静默失败，不影响用户体验
