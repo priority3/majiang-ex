@@ -1,6 +1,6 @@
 import type { Tile } from '../types'
 import { motion } from 'framer-motion'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { generatePatternHand } from '../utils/majiang'
 import { trackAnswer } from '../utils/tracker'
 import { AnimatedMajiangTile } from './AnimatedMajiangTile'
@@ -26,6 +26,7 @@ export function PatternMode({ onComplete }: PatternModeProps) {
   const [streak, setStreak] = useState(0)
   const [round, setRound] = useState(1)
   const [startTime] = useState(Date.now())
+  const [lastAnswerCorrect, setLastAnswerCorrect] = useState(false)
   const maxRounds = 10
 
   const handleSelectPattern = (patternId: string) => {
@@ -34,39 +35,58 @@ export function PatternMode({ onComplete }: PatternModeProps) {
     setSelectedPattern(patternId)
   }
 
+  const handleNextQuestion = () => {
+    if (round < maxRounds) {
+      setRound(prev => prev + 1)
+      const newPattern = PATTERNS[Math.floor(Math.random() * PATTERNS.length)]
+      setCurrentPattern(newPattern)
+      setHand(generatePatternHand(newPattern.id))
+      setSelectedPattern(null)
+      setShowResult(false)
+    }
+    else {
+      const timeSpent = Math.floor((Date.now() - startTime) / 1000)
+      onComplete(score, timeSpent)
+    }
+  }
+
   const handleConfirm = () => {
     if (!selectedPattern)
       return
 
     setShowResult(true)
     const isCorrect = selectedPattern === currentPattern.id
+    setLastAnswerCorrect(isCorrect)
 
     if (isCorrect) {
       const streakBonus = streak * 20
       setScore(prev => prev + 200 + streakBonus)
       setStreak(prev => prev + 1)
+
+      setTimeout(() => {
+        handleNextQuestion()
+      }, 2000)
     }
     else {
       setStreak(0)
       setScore(prev => Math.max(0, prev - 50))
     }
     trackAnswer('pattern', isCorrect, 'pattern_recognition')
-
-    setTimeout(() => {
-      if (round < maxRounds) {
-        setRound(prev => prev + 1)
-        const newPattern = PATTERNS[Math.floor(Math.random() * PATTERNS.length)]
-        setCurrentPattern(newPattern)
-        setHand(generatePatternHand(newPattern.id))
-        setSelectedPattern(null)
-        setShowResult(false)
-      }
-      else {
-        const timeSpent = Math.floor((Date.now() - startTime) / 1000)
-        onComplete(score + (isCorrect ? 200 : 0), timeSpent)
-      }
-    }, 2000)
   }
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (showResult && !lastAnswerCorrect) {
+        if (e.key === ' ' || e.key === 'Enter') {
+          e.preventDefault()
+          handleNextQuestion()
+        }
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [showResult, lastAnswerCorrect])
 
   return (
     <div className="glass-card p-6">
@@ -174,6 +194,19 @@ export function PatternMode({ onComplete }: PatternModeProps) {
           whileTap={selectedPattern ? { scale: 0.98 } : {}}
         >
           确认答案
+        </motion.button>
+      )}
+
+      {showResult && !lastAnswerCorrect && (
+        <motion.button
+          className="neon-button neon-button-success w-full"
+          onClick={handleNextQuestion}
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+        >
+          下一题
         </motion.button>
       )}
     </div>

@@ -75,6 +75,7 @@ export function TingMode({ onComplete, soundEnabled, difficulty }: TingModeProps
   const [showBurst, setShowBurst] = useState(false)
   const [popupScore, setPopupScore] = useState(0)
   const [showPopup, setShowPopup] = useState(false)
+  const [lastAnswerCorrect, setLastAnswerCorrect] = useState(false)
 
   const handleGenerateNewHand = () => {
     generateNewHand()
@@ -146,10 +147,13 @@ export function TingMode({ onComplete, soundEnabled, difficulty }: TingModeProps
 
       onComplete(isAnswerCorrect ? 100 : 0, timeSpent || 0)
       trackAnswer('ting', isAnswerCorrect, 'ting_judge')
+      setLastAnswerCorrect(isAnswerCorrect)
 
-      setTimeout(() => {
-        handleNextRound()
-      }, 2000)
+      if (isAnswerCorrect) {
+        setTimeout(() => {
+          handleNextRound()
+        }, 2000)
+      }
     }
   }
 
@@ -500,6 +504,20 @@ export function TingMode({ onComplete, soundEnabled, difficulty }: TingModeProps
                 </div>
               )}
         </motion.div>
+      )}
+
+      {/* 下一题按钮（答错时显示） */}
+      {showFeedback && !lastAnswerCorrect && (
+        <motion.button
+          className="neon-button neon-button-success w-full mb-4"
+          onClick={handleNextRound}
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+        >
+          下一题
+        </motion.button>
       )}
 
       {/* 反馈区域 */}

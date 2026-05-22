@@ -25,6 +25,7 @@ export function SpeedMode({ onComplete }: SpeedModeProps) {
   const [options, setOptions] = useState<number[]>([])
   const [showFeedback, setShowFeedback] = useState(false)
   const [lastCorrect, setLastCorrect] = useState<boolean | null>(null)
+  const [lastAnswerCorrect, setLastAnswerCorrect] = useState(false)
 
   useEffect(() => {
     const correct = gameState.tingCount
@@ -55,6 +56,13 @@ export function SpeedMode({ onComplete }: SpeedModeProps) {
     return () => clearInterval(timer)
   }, [isRunning, score, onComplete])
 
+  const handleNextQuestion = () => {
+    setShowFeedback(false)
+    setLastCorrect(null)
+    setLastAnswerCorrect(false)
+    setGameState(generateQuickHand())
+  }
+
   const handleAnswer = (answer: number) => {
     if (!isRunning || showFeedback)
       return
@@ -62,25 +70,38 @@ export function SpeedMode({ onComplete }: SpeedModeProps) {
     const isCorrect = answer === gameState.tingCount
     setLastCorrect(isCorrect)
     setShowFeedback(true)
+    setLastAnswerCorrect(isCorrect)
 
     if (isCorrect) {
       const timeBonus = Math.floor(timeLeft / 3)
       const streakBonus = streak * 15
       setScore(prev => prev + 100 + timeBonus + streakBonus)
       setStreak(prev => prev + 1)
+
+      setTimeout(() => {
+        handleNextQuestion()
+      }, 800)
     }
     else {
       setStreak(0)
       setScore(prev => Math.max(0, prev - 20))
     }
     trackAnswer('speed', isCorrect, 'ting_count')
-
-    setTimeout(() => {
-      setShowFeedback(false)
-      setLastCorrect(null)
-      setGameState(generateQuickHand())
-    }, 800)
   }
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (showFeedback && !lastAnswerCorrect) {
+        if (e.key === ' ' || e.key === 'Enter') {
+          e.preventDefault()
+          handleNextQuestion()
+        }
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [showFeedback, lastAnswerCorrect])
 
   return (
     <div className="glass-card p-6">
@@ -151,7 +172,7 @@ export function SpeedMode({ onComplete }: SpeedModeProps) {
         </motion.div>
       )}
 
-      <div className="grid grid-cols-4 gap-3">
+      <div className="grid grid-cols-4 gap-3 mb-4">
         {options.map(option => (
           <motion.button
             key={option}
@@ -169,6 +190,19 @@ export function SpeedMode({ onComplete }: SpeedModeProps) {
           </motion.button>
         ))}
       </div>
+
+      {showFeedback && !lastAnswerCorrect && (
+        <motion.button
+          className="neon-button neon-button-success w-full"
+          onClick={handleNextQuestion}
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+        >
+          下一题
+        </motion.button>
+      )}
     </div>
   )
 }
