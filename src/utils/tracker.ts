@@ -217,14 +217,16 @@ async function send(payload: Record<string, unknown>) {
   }
 
   try {
+    const jsonStr = JSON.stringify(data)
     if (navigator.sendBeacon) {
-      navigator.sendBeacon(`${TRACKER_URL}/api/track`, JSON.stringify(data))
+      const blob = new Blob([jsonStr], { type: 'application/json' })
+      navigator.sendBeacon(`${TRACKER_URL}/api/track`, blob)
     }
     else {
       fetch(`${TRACKER_URL}/api/track`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
+        body: jsonStr,
         keepalive: true,
       })
     }
