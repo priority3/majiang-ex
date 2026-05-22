@@ -18,23 +18,67 @@ const EMPTY_CLIENT_ATTRIBUTION: ClientAttribution = {
   city: '',
 }
 
-// 生成或读取访客 ID
+// Cookie 操作辅助函数
+function getCookie(name: string): string | null {
+  const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'))
+  return match ? match[2] : null
+}
+
+function setCookie(name: string, value: string, days: number = 365): void {
+  const expires = new Date(Date.now() + days * 86400000).toUTCString()
+  document.cookie = `${name}=${value}; expires=${expires}; path=/; SameSite=Lax`
+}
+
+// 生成或读取访客 ID（优先级：localStorage > cookie > 生成新ID）
 function getVisitorId(): string {
-  let id = localStorage.getItem('mj_visitor_id')
-  if (!id) {
-    id = `v_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`
-    localStorage.setItem('mj_visitor_id', id)
+  // 优先尝试 localStorage
+  try {
+    let id = localStorage.getItem('mj_visitor_id')
+    if (id) return id
   }
+  catch {}
+
+  // 其次尝试 cookie
+  let id = getCookie('mj_visitor_id')
+  if (id) {
+    // 同步到 localStorage
+    try { localStorage.setItem('mj_visitor_id', id) } catch {}
+    return id
+  }
+
+  // 生成新 ID
+  id = `v_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`
+
+  // 尝试存储到 localStorage 和 cookie
+  try { localStorage.setItem('mj_visitor_id', id) } catch {}
+  setCookie('mj_visitor_id', id)
+
   return id
 }
 
-// 获取会话 ID
+// 获取会话 ID（优先级：sessionStorage > cookie > 生成新ID）
 function getSessionId(): string {
-  let id = sessionStorage.getItem('mj_session_id')
-  if (!id) {
-    id = `s_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
-    sessionStorage.setItem('mj_session_id', id)
+  // 优先尝试 sessionStorage
+  try {
+    let id = sessionStorage.getItem('mj_session_id')
+    if (id) return id
   }
+  catch {}
+
+  // 其次尝试 cookie（会话级别）
+  let id = getCookie('mj_session_id')
+  if (id) {
+    try { sessionStorage.setItem('mj_session_id', id) } catch {}
+    return id
+  }
+
+  // 生成新 ID
+  id = `s_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
+
+  try { sessionStorage.setItem('mj_session_id', id) } catch {}
+  // session ID 用短有效期 cookie
+  setCookie('mj_session_id', id, 1)
+
   return id
 }
 
