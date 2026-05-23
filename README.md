@@ -64,3 +64,5 @@ src/
 ├── main.tsx             # 应用入口
 └── index.css            # 全局样式
 ```
+
+Thanks for the support and feedback from the friends at [LINUX DO](https://linux.do/).
