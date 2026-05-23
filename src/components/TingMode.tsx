@@ -30,7 +30,7 @@ export function TingMode({ onComplete, soundEnabled, difficulty }: TingModeProps
     isSortedHandTile,
     generateNewHand,
     toggleHandTilesOrder,
-  } = useHandTiles()
+  } = useHandTiles(difficulty === 'hard')
 
   const {
     selectedTiles,
@@ -345,7 +345,7 @@ export function TingMode({ onComplete, soundEnabled, difficulty }: TingModeProps
         >
           🎲 重新生成
         </motion.button>
-        {handInfo.hand.length > 0 && (
+        {handInfo.hand.length > 0 && difficulty !== 'hard' && (
           <SortButton
             isSorted={isSortedHandTile}
             onClick={toggleHandTilesOrder}
