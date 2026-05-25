@@ -165,7 +165,48 @@ function getReferrerInfo() {
   return { referrer, utmSource, utmMedium, utmCampaign }
 }
 
-// 客户端不调用第三方 IP API，避免把访客 IP 发送给外部服务。
+// 检测真实公网 IP（缓存到 localStorage，每天刷新一次）
+let _cachedIp: string | null = null
+let _ipFetchedAt = 0
+const IP_CACHE_TTL = 86400_000 // 1 天
+
+async function detectRealIp(): Promise<string> {
+  const now = Date.now()
+  // 内存缓存
+  if (_cachedIp && now - _ipFetchedAt < IP_CACHE_TTL) return _cachedIp
+  // localStorage 缓存
+  try {
+    const stored = localStorage.getItem('mj_real_ip')
+    const ts = Number(localStorage.getItem('mj_real_ip_ts') || 0)
+    if (stored && now - ts < IP_CACHE_TTL) {
+      _cachedIp = stored
+      _ipFetchedAt = ts
+      return stored
+    }
+  }
+  catch {}
+  // 请求检测
+  try {
+    const r = await fetch('https://api.ipify.org?format=json', { signal: AbortSignal.timeout(3000) })
+    const d = await r.json()
+    if (d.ip) {
+      _cachedIp = d.ip
+      _ipFetchedAt = now
+      try {
+        localStorage.setItem('mj_real_ip', d.ip)
+        localStorage.setItem('mj_real_ip_ts', String(now))
+      }
+      catch {}
+      return d.ip
+    }
+  }
+  catch {}
+  return ''
+}
+
+// 启动时异步检测 IP，不阻塞页面
+const _ipPromise = detectRealIp()
+
 function getClientAttribution(): ClientAttribution {
   return EMPTY_CLIENT_ATTRIBUTION
 }
@@ -204,6 +245,7 @@ function getDeviceInfo() {
 async function send(payload: Record<string, unknown>) {
   const deviceInfo = getDeviceInfo()
   const clientAttribution = getClientAttribution()
+  const realIp = await _ipPromise
 
   const data = {
     visitorId: getVisitorId(),
@@ -211,6 +253,7 @@ async function send(payload: Record<string, unknown>) {
     timestamp: Date.now(),
     url: window.location.href,
     path: window.location.pathname,
+    realIp,
     ...deviceInfo,
     ...clientAttribution,
     ...payload,
