@@ -1,6 +1,7 @@
-# 麻将练习工具
+# 四川麻将练习
 
 一个基于 React + TypeScript 的麻将练习应用，帮助玩家提升麻将技巧。
+![preview](https://cdn3.ldstatic.com/optimized/4X/9/3/9/9395d2583d12b12734b7d265903e52bbcf9595a7_2_1380x698.jpeg)
 
 ## 功能特点
 
