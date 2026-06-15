@@ -25,7 +25,7 @@ export function SettingsPanel({
   const difficulties = [
     { id: 'easy' as const, name: '简单', desc: '显示提示信息', icon: '🌱' },
     { id: 'normal' as const, name: '普通', desc: '标准难度', icon: '🎯' },
-    { id: 'hard' as const, name: '困难', desc: '限时挑战', icon: '🔥' },
+    { id: 'hard' as const, name: '困难', desc: '清一色·乱序', icon: '🔥' },
   ]
 
   return (

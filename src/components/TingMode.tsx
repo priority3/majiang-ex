@@ -7,7 +7,7 @@ import { useSound } from '../hooks/useSound'
 import { useStatistics } from '../hooks/useStatistics'
 import { useTileSelection } from '../hooks/useTileSelection'
 import { useTimer } from '../hooks/useTimer'
-import { generateSingleSequenceTiles } from '../utils/majiang'
+import { generateQingyiseSelectionTiles, generateSingleSequenceTiles } from '../utils/majiang'
 import { trackAnswer } from '../utils/tracker'
 import { AnimatedMajiangTile } from './AnimatedMajiangTile'
 import { FeedbackSection } from './FeedbackSection'
@@ -16,6 +16,7 @@ import { ScorePopup } from './ScorePopup'
 import { SortButton } from './SortButton'
 import { StatisticsSection } from './StatisticsSection'
 import { TimerDisplay } from './TimerDisplay'
+import { WinningBreakdown } from './WinningBreakdown'
 
 interface TingModeProps {
   onComplete: (score: number, time: number) => void
@@ -64,7 +65,8 @@ export function TingMode({ onComplete, soundEnabled, difficulty }: TingModeProps
   const [round, setRound] = useState(1)
   const maxRounds = 10
 
-  const maxTime = difficulty === 'easy' ? 120 : difficulty === 'normal' ? 60 : 30
+  // 困难模式（清一色）时间与普通一致，均为 60 秒
+  const maxTime = difficulty === 'easy' ? 120 : 60
   const [timeLeft, setTimeLeft] = useState(maxTime)
   const [isTimerRunning, setIsTimerRunning] = useState(false)
 
@@ -180,7 +182,12 @@ export function TingMode({ onComplete, soundEnabled, difficulty }: TingModeProps
     return () => clearInterval(timer)
   }, [isTimerRunning])
 
-  const fullTiles = generateSingleSequenceTiles(handInfo.excludeType)
+  // 困难模式为清一色（单花色）：选择区只展示该花色 1-9 共 9 张牌
+  const handTypes = Array.from(new Set(handInfo.hand.map(t => t.type)))
+  const isQingyise = difficulty === 'hard' && handTypes.length === 1
+  const fullTiles = isQingyise
+    ? generateQingyiseSelectionTiles(handTypes[0])
+    : generateSingleSequenceTiles(handInfo.excludeType)
   const showEasyHint = difficulty === 'easy' && handInfo.hand.length > 0
   const easyHintText = handInfo.isTing
     ? `提示：这手牌可以胡 ${tingTiles.length} 张牌，先留意同花色的连续牌和对子。`
@@ -188,12 +195,18 @@ export function TingMode({ onComplete, soundEnabled, difficulty }: TingModeProps
 
   // 处理"没有听牌"选项的点击
   const handleNoTingClick = () => {
+    // 已确认答案后锁定选择，避免清空反馈又弹出确认按钮
+    if (showFeedback)
+      return
     setShowNoTingOption(true)
     resetSelection()
   }
 
   // 处理选择听牌牌的点击（取消"没有听牌"选项）
   const handleTileSelectWrapper = (tile: any) => {
+    // 已确认答案后锁定选择
+    if (showFeedback)
+      return
     setShowNoTingOption(false)
     handleTileSelect(tile)
   }
@@ -303,8 +316,10 @@ export function TingMode({ onComplete, soundEnabled, difficulty }: TingModeProps
           isWarning={timeLeft <= 10}
         />
         <div className="text-gray-400">
-          缺：
-          <span className="text-red-400 font-bold">{handInfo.excludeType}</span>
+          {isQingyise ? '清一色：' : '缺：'}
+          <span className={isQingyise ? 'text-purple-400 font-bold' : 'text-red-400 font-bold'}>
+            {isQingyise ? handTypes[0] : handInfo.excludeType}
+          </span>
         </div>
       </div>
 
@@ -345,7 +360,7 @@ export function TingMode({ onComplete, soundEnabled, difficulty }: TingModeProps
         >
           🎲 重新生成
         </motion.button>
-        {handInfo.hand.length > 0 && difficulty !== 'hard' && (
+        {handInfo.hand.length > 0 && (
           <SortButton
             isSorted={isSortedHandTile}
             onClick={toggleHandTilesOrder}
@@ -357,12 +372,19 @@ export function TingMode({ onComplete, soundEnabled, difficulty }: TingModeProps
       <div className="mb-6">
         <div className="flex justify-between items-center text-gray-300 border-b border-white/10 pb-2 mb-4">
           <h2 className="text-xl font-bold">你的手牌</h2>
-          {handInfo.excludeType && (
-            <div className="text-sm text-gray-400">
-              缺：
-              <span className="text-red-400 font-bold">{handInfo.excludeType}</span>
-            </div>
-          )}
+          {isQingyise
+            ? (
+                <div className="text-sm text-gray-400">
+                  清一色：
+                  <span className="text-purple-400 font-bold">{handTypes[0]}</span>
+                </div>
+              )
+            : handInfo.excludeType && (
+              <div className="text-sm text-gray-400">
+                缺：
+                <span className="text-red-400 font-bold">{handInfo.excludeType}</span>
+              </div>
+            )}
         </div>
         <motion.div
           className="flex flex-wrap justify-center gap-2 p-4 bg-black/20 rounded-xl"
@@ -409,7 +431,7 @@ export function TingMode({ onComplete, soundEnabled, difficulty }: TingModeProps
                     selected={isSelected(tile)}
                     correct={showFeedback && handInfo.isTing && tingTiles.some(t => t.type === tile.type && t.value === tile.value)}
                     error={showFeedback && selectedTiles.some(t => t.type === tile.type && t.value === tile.value) && !tingTiles.some(t => t.type === tile.type && t.value === tile.value)}
-                    onClick={() => handleTileSelectWrapper(tile)}
+                    onClick={showFeedback ? undefined : () => handleTileSelectWrapper(tile)}
                   />
                 ))
               : null}
@@ -423,10 +445,11 @@ export function TingMode({ onComplete, soundEnabled, difficulty }: TingModeProps
               showNoTingOption
                 ? 'bg-gradient-to-r from-red-500 to-pink-500 text-white shadow-lg'
                 : 'bg-white/10 text-gray-300 hover:bg-white/20'
-            }`}
+            } ${showFeedback ? 'opacity-50 cursor-not-allowed' : ''}`}
             onClick={handleNoTingClick}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
+            disabled={showFeedback}
+            whileHover={showFeedback ? {} : { scale: 1.05 }}
+            whileTap={showFeedback ? {} : { scale: 0.95 }}
           >
             ❌ 没有听牌
           </motion.button>
@@ -503,6 +526,20 @@ export function TingMode({ onComplete, soundEnabled, difficulty }: TingModeProps
                     : '这手牌没有听牌'}
                 </div>
               )}
+        </motion.div>
+      )}
+
+      {/* 胡牌组合（确认后自动展示，无需额外点击） */}
+      {showFeedback && handInfo.isTing && (
+        <motion.div
+          className="mb-4 p-4 rounded-xl bg-black/20 border border-white/10"
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+        >
+          <div className="text-sm text-gray-300 font-medium mb-1">
+            胡牌组合（固定面子 + 搭子 → 听）：
+          </div>
+          <WinningBreakdown hand={handInfo.hand} tingTiles={tingTiles} />
         </motion.div>
       )}
 

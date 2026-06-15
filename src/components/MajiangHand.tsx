@@ -38,7 +38,7 @@ export function MajiangHand() {
   const [statsOpen, setStatsOpen] = useState(false)
   const [tutorialOpen, setTutorialOpen] = useState(false)
   const [soundEnabled, setSoundEnabled] = useState(true)
-  const [difficulty, setDifficulty] = useState<'easy' | 'normal' | 'hard'>('normal')
+  const [difficulty, setDifficulty] = useState<'easy' | 'normal' | 'hard'>('hard')
   const [celebrationType, setCelebrationType] = useState<'win' | 'combo' | 'levelup'>('win')
   const [showCelebration, setShowCelebration] = useState(false)
 

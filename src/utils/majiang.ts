@@ -1,4 +1,4 @@
-import type { Tile, TileType } from '../types'
+import type { MeldGroup, Tile, TileType, TingPattern } from '../types'
 import { VALID_TYPES } from '../types'
 
 export function compareTilesByMahjongOrder(a: Tile, b: Tile): number {
@@ -219,10 +219,104 @@ export function generateRandomHand(): {
   return generateTingTiles()
 }
 
+// 生成某一花色的完整牌池（1-9 各 4 张，共 36 张）
+function generateQingyiseTilePool(type: TileType): Tile[] {
+  const tiles: Tile[] = []
+  for (let value = 1; value <= 9; value++) {
+    for (let i = 0; i < 4; i++) {
+      tiles.push({ type, value })
+    }
+  }
+  return tiles
+}
+
+// 从给定花色牌池中随机抽 13 张
+function drawQingyiseHand(type: TileType): Tile[] {
+  const pool = generateQingyiseTilePool(type)
+  const hand: Tile[] = []
+  for (let i = 0; i < 13; i++) {
+    const index = Math.floor(Math.random() * pool.length)
+    hand.push(pool.splice(index, 1)[0])
+  }
+  return hand
+}
+
+// Reason: 清一色缺两门，excludeType 字段无实际意义，
+// 返回任意一个非手牌花色作为占位，保持现有数据结构兼容
+function pickPlaceholderExcludeType(type: TileType): TileType {
+  return VALID_TYPES.find(t => t !== type)!
+}
+
+// 生成清一色听牌手牌（13 张同花色，保证听牌）
+function generateQingyiseTingTiles(): {
+  hand: Tile[]
+  excludeType: TileType
+  isTing: boolean
+} {
+  const maxAttempts = 1000
+  for (let attempts = 0; attempts < maxAttempts; attempts++) {
+    const type = VALID_TYPES[Math.floor(Math.random() * VALID_TYPES.length)]
+    const hand = drawQingyiseHand(type)
+    if (getTingInfo(hand).length > 0) {
+      return { hand, excludeType: pickPlaceholderExcludeType(type), isTing: true }
+    }
+  }
+
+  // Reason: 随机抽牌极少数情况下命中不到听牌，用有效清一色胡牌去掉一张兜底
+  const winning = generatePatternHand('qingyise')
+  winning.splice(Math.floor(Math.random() * winning.length), 1)
+  const fallbackType = winning[0].type
+  return { hand: winning, excludeType: pickPlaceholderExcludeType(fallbackType), isTing: true }
+}
+
+// 生成清一色不听牌手牌（13 张同花色，保证不听牌）
+function generateQingyiseNoTingTiles(): {
+  hand: Tile[]
+  excludeType: TileType
+  isTing: boolean
+} {
+  const maxAttempts = 200
+  for (let attempts = 0; attempts < maxAttempts; attempts++) {
+    const type = VALID_TYPES[Math.floor(Math.random() * VALID_TYPES.length)]
+    const hand = drawQingyiseHand(type)
+    if (getTingInfo(hand).length === 0) {
+      return { hand, excludeType: pickPlaceholderExcludeType(type), isTing: false }
+    }
+  }
+
+  // Reason: 极少数情况下抽不到不听牌组合，退化为听牌题，保证流程不阻塞
+  return generateQingyiseTingTiles()
+}
+
+// 生成清一色练习手牌（困难模式专用）：约 60% 听牌、40% 不听牌
+export function generateQingyiseHand(): {
+  hand: Tile[]
+  excludeType: TileType
+  isTing: boolean
+} {
+  if (Math.random() < 0.6) {
+    return generateQingyiseTingTiles()
+  }
+  return generateQingyiseNoTingTiles()
+}
+
 // 获取听牌信息
 export function getTingInfo(tiles: Tile[]): Tile[] {
   const tingTiles: Tile[] = []
   const types = new Set(tiles.map(t => t.type))
+
+  // 清一色（单花色）：只在本花色 1-9 范围内寻找可胡的牌
+  if (types.size === 1) {
+    const type = tiles[0].type
+    for (let value = 1; value <= 9; value++) {
+      const tile: Tile = { type, value }
+      const testTiles = [...tiles, tile]
+      if (canHu(testTiles) && !tingTiles.some(t => isSameTile(t, tile))) {
+        tingTiles.push(tile)
+      }
+    }
+    return tingTiles
+  }
 
   if (types.size !== 2)
     return tingTiles
@@ -365,6 +459,151 @@ export function generatePatternHand(patternId: string): Tile[] {
       return hand
     }
   }
+}
+
+// 用于给牌/组合生成唯一键，便于去重与归并
+function tileKey(t: Tile): string {
+  const order = { 万: 0, 筒: 1, 条: 2 }
+  return `${order[t.type]}-${t.value}`
+}
+
+function meldKey(g: MeldGroup): string {
+  return `${g.kind}:${g.tiles.map(tileKey).join(',')}`
+}
+
+function meldsKey(groups: MeldGroup[]): string {
+  return groups.map(meldKey).sort().join(';')
+}
+
+function tilesKey(tiles: Tile[]): string {
+  return [...tiles].sort(compareTilesByMahjongOrder).map(tileKey).join(',')
+}
+
+// 枚举把（已排序的）牌拆成顺子/刻子的所有方案
+function splitMeldsAll(tiles: Tile[]): MeldGroup[][] {
+  if (tiles.length === 0)
+    return [[]]
+
+  const results: MeldGroup[][] = []
+  const seen = new Set<string>()
+  const pushUnique = (combo: MeldGroup[]) => {
+    const key = meldsKey(combo)
+    if (!seen.has(key)) {
+      seen.add(key)
+      results.push(combo)
+    }
+  }
+
+  // 刻子（三张相同）
+  if (tiles.length >= 3 && isSameTile(tiles[0], tiles[1]) && isSameTile(tiles[1], tiles[2])) {
+    for (const rest of splitMeldsAll(tiles.slice(3)))
+      pushUnique([{ kind: 'triplet', tiles: [tiles[0], tiles[1], tiles[2]] }, ...rest])
+  }
+
+  // 顺子（同花色三连）
+  const first = tiles[0]
+  const second = { type: first.type, value: first.value + 1 }
+  const third = { type: first.type, value: first.value + 2 }
+  const si = tiles.findIndex(t => isSameTile(t, second))
+  const ti = tiles.findIndex(t => isSameTile(t, third))
+  if (si !== -1 && ti !== -1) {
+    const remaining = [...tiles]
+    // Reason: 从大到小删除索引，避免删除后索引错位
+    remaining.splice(Math.max(si, ti), 1)
+    remaining.splice(Math.min(si, ti), 1)
+    remaining.splice(0, 1)
+    for (const rest of splitMeldsAll(remaining))
+      pushUnique([{ kind: 'sequence', tiles: [first, { ...second }, { ...third }] }, ...rest])
+  }
+
+  return results
+}
+
+// 枚举 14 张胡牌的所有「将 + 4 面子」拆法（含七对）
+function decomposeWinningHandAll(tiles: Tile[]): MeldGroup[][] {
+  if (tiles.length !== 14)
+    return []
+
+  const sorted = sortTilesByMahjongOrder(tiles)
+  const all: MeldGroup[][] = []
+  const seen = new Set<string>()
+
+  // 普通胡：枚举每一对作为将，剩余拆面子
+  for (let i = 0; i < sorted.length - 1; i++) {
+    if (!isSameTile(sorted[i], sorted[i + 1]))
+      continue
+    const rest = [...sorted]
+    const pair: MeldGroup = { kind: 'pair', tiles: [rest[i], rest[i + 1]] }
+    rest.splice(i, 2)
+    for (const melds of splitMeldsAll(rest)) {
+      const full = [pair, ...melds]
+      const key = meldsKey(full)
+      if (!seen.has(key)) {
+        seen.add(key)
+        all.push(full)
+      }
+    }
+  }
+
+  // 七对
+  if (isQiDui(sorted)) {
+    const groups: MeldGroup[] = []
+    for (let i = 0; i < sorted.length; i += 2)
+      groups.push({ kind: 'qiduiPair', tiles: [sorted[i], sorted[i + 1]] })
+    const key = meldsKey(groups)
+    if (!seen.has(key)) {
+      seen.add(key)
+      all.push(groups)
+    }
+  }
+
+  return all
+}
+
+// 分析听牌结构：把 13 张手牌拆成所有「固定面子 + 搭子」组合，
+// 并归并出每种组合可以胡的牌（例：固定 456条 + 搭子 23条 → 听 1条、4条）
+export function analyzeTingPatterns(hand: Tile[], tingTiles: Tile[]): TingPattern[] {
+  const map = new Map<string, TingPattern>()
+
+  for (const win of tingTiles) {
+    for (const decomp of decomposeWinningHandAll([...hand, win])) {
+      // win 可能落在多个组里（如手里已有同点数的牌），逐组生成对应的「搭子+听」解读
+      for (let gi = 0; gi < decomp.length; gi++) {
+        const group = decomp[gi]
+        const idx = group.tiles.findIndex(t => isSameTile(t, win))
+        if (idx === -1)
+          continue
+        const wait = group.tiles.filter((_, k) => k !== idx) // 去掉胡的那张，剩下的即手中搭子
+        const melds = decomp.filter((_, k) => k !== gi) // 其余为已成型的固定面子
+        const key = `${meldsKey(melds)}#${tilesKey(wait)}`
+        if (!map.has(key))
+          map.set(key, { melds, wait, winsOn: [] })
+        const entry = map.get(key)!
+        if (!entry.winsOn.some(t => isSameTile(t, win)))
+          entry.winsOn.push(win)
+      }
+    }
+  }
+
+  const meldOrder = { sequence: 0, triplet: 1, pair: 2, qiduiPair: 3 }
+  const patterns = [...map.values()]
+  for (const p of patterns) {
+    p.winsOn.sort(compareTilesByMahjongOrder)
+    p.melds.sort((a, b) =>
+      meldOrder[a.kind] - meldOrder[b.kind] || compareTilesByMahjongOrder(a.tiles[0], b.tiles[0]))
+  }
+  // 固定面子多（搭子规整）的组合排前面，更易读
+  patterns.sort((a, b) => b.melds.length - a.melds.length)
+  return patterns
+}
+
+// 生成清一色可选牌（某花色 1-9 各一张，共 9 张），供选择区展示
+export function generateQingyiseSelectionTiles(type: TileType): Tile[] {
+  const tiles: Tile[] = []
+  for (let value = 1; value <= 9; value++) {
+    tiles.push({ type, value })
+  }
+  return tiles
 }
 
 export function generateSingleSequenceTiles(excludeType: TileType) {

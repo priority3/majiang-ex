@@ -8,33 +8,33 @@ interface TutorialOverlayProps {
 
 const TUTORIAL_STEPS = [
   {
-    title: '欢迎来到麻将练习场！',
-    content: '这是一个帮助你提升麻将技巧的练习工具。通过多种游戏模式，你可以锻炼听牌判断、出牌策略等核心技能。',
+    title: '麻将牌有哪些',
+    content: '本练习使用三种花色：万、条、筒，每种各有 1 到 9，共 27 种牌，每种 4 张。没有字牌（东南西北中发白）。',
     icon: '🀄',
   },
   {
-    title: '听牌练习',
-    content: '观察手牌，判断哪些牌可以让你胡牌。记住：如果手牌不能胡，请选择"没有听牌"。答对加分，答错扣分！',
-    icon: '🎯',
+    title: '怎样才算胡牌',
+    content: '凑齐 14 张牌，组成「4 个面子 + 1 对将」即为胡牌。手里平时拿 13 张，再摸/碰到合适的第 14 张就能胡。',
+    icon: '✅',
   },
   {
-    title: '出牌练习',
-    content: '从手牌中选择最佳出牌。好的出牌策略能让你更快听牌、胡牌。',
-    icon: '🃏',
-  },
-  {
-    title: '牌型识别',
-    content: '快速识别麻将牌型：七对子、碰碰胡、清一色等。掌握牌型是提高牌技的基础。',
+    title: '面子与将',
+    content: '面子有两种：顺子（同花色三张连续，如 3万4万5万）、刻子（三张相同，如 7条7条7条）。将（雀头）是任意一对相同的牌。',
     icon: '🧩',
   },
   {
-    title: '速度挑战',
-    content: '在限定时间内回答尽可能多的问题。速度越快、连击越多，得分越高！',
-    icon: '⚡',
+    title: '缺一门',
+    content: '四川麻将规则：手牌只能保留两种花色，必须缺掉其中一门才能胡牌。所以判断时只看剩下的两门牌怎么组合。',
+    icon: '🚫',
   },
   {
-    title: '积分与成就',
-    content: '每次正确回答都会获得积分和连击奖励。解锁成就可以获得额外荣誉。加油成为麻将大师！',
+    title: '什么是听牌',
+    content: '当手上 13 张牌「只差一张就能胡」时，就叫听牌。那些能让你胡牌的牌，就是你「听的牌」，可能有一张或多张。',
+    icon: '🎯',
+  },
+  {
+    title: '常见番型',
+    content: '七对：七组对子凑成 14 张。清一色：整副牌只有一种花色。碰碰胡：全部由刻子加一对将组成，没有顺子。',
     icon: '🏆',
   },
 ]
@@ -76,16 +76,24 @@ export function TutorialOverlay({ isOpen, onClose }: TutorialOverlayProps) {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: 20 }}
           >
-            {/* 进度指示器 */}
-            <div className="flex gap-2 p-4 border-b border-white/10">
-              {TUTORIAL_STEPS.map((_, index) => (
-                <div
-                  key={index}
-                  className={`h-1 flex-1 rounded-full transition-colors ${
-                    index <= currentStep ? 'bg-blue-500' : 'bg-white/20'
-                  }`}
-                />
-              ))}
+            {/* 顶部：进度指示器 + 跳过按钮（同一行，避免重叠） */}
+            <div className="flex items-center gap-3 p-4 border-b border-white/10">
+              <div className="flex flex-1 gap-2">
+                {TUTORIAL_STEPS.map((_, index) => (
+                  <div
+                    key={index}
+                    className={`h-1 flex-1 rounded-full transition-colors ${
+                      index <= currentStep ? 'bg-blue-500' : 'bg-white/20'
+                    }`}
+                  />
+                ))}
+              </div>
+              <button
+                className="shrink-0 whitespace-nowrap text-sm text-gray-400 transition-colors hover:text-white"
+                onClick={onClose}
+              >
+                跳过教程
+              </button>
             </div>
 
             {/* 内容区 */}
@@ -138,14 +146,6 @@ export function TutorialOverlay({ isOpen, onClose }: TutorialOverlayProps) {
                 </motion.button>
               </div>
             </div>
-
-            {/* 跳过按钮 */}
-            <button
-              className="absolute top-4 right-4 text-gray-400 hover:text-white text-sm"
-              onClick={onClose}
-            >
-              跳过教程
-            </button>
           </motion.div>
         </>
       )}

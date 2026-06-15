@@ -1,7 +1,7 @@
 import type { Tile, TileType } from '../types'
 import { useState } from 'react'
 import { VALID_TYPES } from '../types'
-import { generateRandomHand, getTingInfo, sortTilesByMahjongOrder } from '../utils/majiang'
+import { generateQingyiseHand, generateRandomHand, getTingInfo, sortTilesByMahjongOrder } from '../utils/majiang'
 
 const SORT_PREF_KEY = 'majiang-sort-pref'
 
@@ -21,7 +21,8 @@ function saveSortPref(sorted: boolean) {
   catch {}
 }
 
-export function useHandTiles(forceShuffle = false) {
+// qingyise: 是否生成清一色（单花色）手牌，困难模式使用
+export function useHandTiles(qingyise = false) {
   const [handInfo, setHandInfo] = useState<{
     hand: Tile[]
     excludeType: TileType
@@ -32,20 +33,17 @@ export function useHandTiles(forceShuffle = false) {
     isTing: false,
   })
   const [tingTiles, setTingTiles] = useState<Tile[]>([])
-  const [isSortedHandTile, setIsSortedHandTile] = useState(() => {
-    // 困难模式强制乱序，不读取偏好
-    if (forceShuffle) return false
-    return loadSortPref()
-  })
+  const [isSortedHandTile, setIsSortedHandTile] = useState(() => loadSortPref())
 
   const generateNewHand = () => {
-    const newHandInfo = generateRandomHand()
-    // 困难模式强制乱序
-    if (forceShuffle || !isSortedHandTile) {
-      newHandInfo.hand = [...newHandInfo.hand].sort(() => Math.random() - 0.5)
+    // 困难模式生成清一色（单花色）手牌，其余模式为缺一门手牌
+    const newHandInfo = qingyise ? generateQingyiseHand() : generateRandomHand()
+    // 按当前排序偏好决定手牌展示顺序
+    if (isSortedHandTile) {
+      newHandInfo.hand = sortTilesByMahjongOrder(newHandInfo.hand)
     }
     else {
-      newHandInfo.hand = sortTilesByMahjongOrder(newHandInfo.hand)
+      newHandInfo.hand = [...newHandInfo.hand].sort(() => Math.random() - 0.5)
     }
     setHandInfo(newHandInfo)
     if (newHandInfo.isTing) {
@@ -54,17 +52,10 @@ export function useHandTiles(forceShuffle = false) {
     else {
       setTingTiles([])
     }
-    // 困难模式始终为乱序状态
-    if (forceShuffle) {
-      setIsSortedHandTile(false)
-    }
     return Date.now()
   }
 
   const toggleHandTilesOrder = () => {
-    // 困难模式不允许排序
-    if (forceShuffle) return
-
     if (isSortedHandTile) {
       const shuffledHand = [...handInfo.hand].sort(() => Math.random() - 0.5)
       setHandInfo({ ...handInfo, hand: shuffledHand })
