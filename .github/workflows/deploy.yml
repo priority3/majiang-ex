@@ -7,10 +7,11 @@ on:
   # 允许在 Actions 页面手动触发一次部署
   workflow_dispatch:
 
-# 同一分支的部署串行执行，新部署取消正在进行的旧部署
+# 同一分支的部署串行执行；稳定优先：新部署排队等待前一个完成，
+# 不中断正在进行的部署（避免 rsync 被中途取消导致服务器半同步状态）
 concurrency:
   group: deploy-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   deploy:
